@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#141b1b" />
+    <title>TOGAI — Downhill duels</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23f88456'/%3E%3Cpath d='M7 8h18v5h-6v13h-6V13H7z' fill='%23141b1b'/%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <canvas role="img" id="game" aria-label="Top down mountain racing game"></canvas>
+    <div class="grain"></div>
+    <header>
+      <a class="brand" href="./">TOGAI<span>峠</span></a
+      ><span class="header-label">DOWNHILL DUELS <i></i> PROTOTYPE 001</span
+      ><button type="button" id="sound" class="quiet" aria-label="Toggle sound">
+        SOUND OFF <span>↗</span>
+      </button>
+    </header>
+    <main id="intro">
+      <div class="intro-copy">
+        <div class="eyebrow"><span class="orange-line"></span> ONE MOUNTAIN. TWO DRIVERS.</div>
+        <h1>FIND YOUR<br /><em>LIMIT.</em></h1>
+        <p>
+          Late brakes. Loose rear. One clean line.<br />A downhill duel that’s over in about a
+          minute.
+        </p>
+        <button type="button" id="start" class="primary" disabled>WARMING UP <span>↗</span></button>
+        <div class="hint">NO SIGN-UP. JUST DRIVE.</div>
+      </div>
+      <aside class="brief">
+        <div class="eyebrow">01 / THE COURSE</div>
+        <h2>KASUMI PASS<span>霞峠</span></h2>
+        <div class="tags"><span>DOWNHILL</span><span>1 VS 1 · AI</span></div>
+        <canvas
+          role="img"
+          id="preview-map"
+          width="310"
+          height="240"
+          aria-label="Kasumi Pass course map"
+        ></canvas>
+        <div class="course-stats">
+          <div><strong id="course-length">2.1</strong><small>KILOMETERS</small></div>
+          <div><strong>08</strong><small>KEY CORNERS</small></div>
+          <div><strong>~70</strong><small>SECONDS</small></div>
+        </div>
+        <div class="brief-bottom"><i></i> DRY ASPHALT <span>16:42 / CLEAR</span></div>
+      </aside>
+      <div class="intro-bottom">
+        <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><span>DRIVE</span></div>
+        <div><kbd>SPACE</kbd><span>HANDBRAKE</span></div>
+        <p>A SMALL EXPERIMENT IN GOING SIDEWAYS.</p>
+      </div>
+    </main>
+    <section id="hud" hidden>
+      <div class="race-top">
+        <div class="position">
+          <small>POSITION</small><strong id="position">1<span>/ 2</span></strong>
+        </div>
+        <div class="time">
+          <small>RACE TIME</small><strong id="timer">00:00.000</strong
+          ><span id="gap">SIDE BY SIDE</span>
+        </div>
+      </div>
+      <div class="route">
+        <div><span>KASUMI PASS</span><b id="percent">0%</b></div>
+        <div class="progress"><i id="progress"></i></div>
+        <canvas role="img" id="minimap" width="200" height="160" aria-label="Live race map"></canvas
+        ><span class="map-legend"><i></i> YOU <i></i> RIVAL</span>
+      </div>
+      <div class="speed">
+        <div><strong id="speed">0</strong><span>KM/H</span></div>
+        <div class="rev-track"><i id="rev"></i></div>
+        <span id="drift">GRIP IT. THEN SLIP IT.</span>
+      </div>
+      <div class="race-controls">
+        <span><kbd>WASD</kbd> / <kbd>↑↓←→</kbd> DRIVE</span><span><kbd>SPACE</kbd> HANDBRAKE</span
+        ><button type="button" id="restart" class="quiet"><kbd>R</kbd> RESTART</button
+        ><button type="button" id="pause" class="quiet"><kbd>ESC</kbd> PAUSE</button>
+      </div>
+    </section>
+    <div id="countdown" hidden></div>
+    <section id="pause-panel" class="modal" hidden>
+      <div class="eyebrow">TAKE A BREATH</div>
+      <h2>ON THE<br /><em>SHOULDER.</em></h2>
+      <p>Your descent is paused.</p>
+      <button type="button" id="resume" class="primary">BACK TO THE PASS <span>↗</span></button>
+    </section>
+    <section id="results" class="modal" hidden>
+      <div class="eyebrow">KASUMI PASS / FINISH</div>
+      <h2 id="result-title">PASS<br /><em>CONQUERED.</em></h2>
+      <p id="result-copy"></p>
+      <div class="result-stats">
+        <div><small>YOUR TIME</small><strong id="final-time"></strong></div>
+        <div><small>DRIFT TIME</small><strong id="final-drift"></strong></div>
+      </div>
+      <button type="button" id="again" class="primary">ONE MORE RUN <span>↗</span></button
+      ><button type="button" id="back" class="quiet">BACK TO THE GARAGE</button>
+    </section>
+    <div id="error" hidden>
+      <h2>THE PASS IS CLOSED.</h2>
+      <p id="error-message"></p>
+      <button type="button" id="retry" class="primary">TRY AGAIN ↗</button>
+    </div>
+    <footer>
+      <span><i id="status-dot"></i><span id="engine-status">INITIALIZING ENGINE</span></span
+      ><span id="performance">WEBGPU + WASM</span>
+    </footer>
+    <script type="module" src="./game.js"></script>
+  </body>
+</html>

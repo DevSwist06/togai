@@ -1,0 +1,60 @@
+import { drawCar, color } from './renderer.js';
+
+export class DrivingEffects {
+  smoke = [];
+  marks = [];
+  emission = 0;
+  reset() {
+    this.smoke.length = 0;
+    this.marks.length = 0;
+    this.emission = 0;
+  }
+  draw(dt, phase, s, dynamic) {
+    const smoke = this.smoke,
+      marks = this.marks;
+
+    this.emission += dt;
+    if (this.emission > 1 / 30 && phase === 'race') {
+      this.emission = 0;
+      for (let c = 0; c < 2; c++) {
+        const k = c * 10;
+        if (s[k + 6] < 7 || Math.abs(s[k + 7]) < 0.065) continue;
+        for (const side of [-1, 1]) {
+          const a = s[k + 2],
+            x = s[k] + Math.cos(a) * side * 0.85 - Math.sin(a) * 1.5,
+            y = s[k + 1] + Math.sin(a) * side * 0.85 + Math.cos(a) * 1.5;
+          marks.push({ x, y, a, life: 7 });
+          if (smoke.length < 150) smoke.push({ x, y, r: 0.5, life: 0.7 });
+        }
+      }
+    }
+    for (let i = marks.length - 1; i >= 0; i--) {
+      const p = marks[i];
+      p.life -= dt;
+      if (p.life <= 0) {
+        marks.splice(i, 1);
+        continue;
+      }
+      dynamic.rect(p.x, p.y, 0.25, 1, p.a, [0.17, 0.21, 0.18]);
+    }
+    if (marks.length > 800) marks.splice(0, marks.length - 800);
+    drawCar(dynamic, s[10], s[11], s[12], color('b9d2cd'), s[15]);
+    drawCar(dynamic, s[0], s[1], s[2], color('f88456'), s[5]);
+    // Tiny player marker above the car: instantly distinguish the two drivers.
+    const x = s[0] - Math.sin(s[2]) * 5,
+      y = s[1] + Math.cos(s[2]) * 5;
+    dynamic.disc(x, y, 0.48, color('ffbd84'), 3);
+    for (let i = smoke.length - 1; i >= 0; i--) {
+      const p = smoke[i];
+      p.life -= dt;
+      if (p.life <= 0) {
+        smoke.splice(i, 1);
+        continue;
+      }
+      p.r += dt * 2;
+      p.x += dt * 0.6;
+      const fade = p.life / 0.7;
+      dynamic.disc(p.x, p.y, p.r, [0.255 + fade * 0.12, 0.286 + fade * 0.11, 0.27 + fade * 0.1], 6);
+    }
+  }
+}
