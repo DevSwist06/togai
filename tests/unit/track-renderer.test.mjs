@@ -1,7 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { track, length, atDistance, aiInput } from '../../src/client/track.js';
-import { Mesh, drawCar, color } from '../../src/client/renderer.js';
+import {
+  Mesh,
+  ROAD_EXTENSION,
+  drawCar,
+  color,
+  renderPointAtDistance,
+} from '../../src/client/renderer.js';
 test('track fits physics capacity, has increasing progress and normalized normals', () => {
   assert(track.length > 100 && track.length < 2048);
   assert(length > 1900 && length < 2000);
@@ -15,6 +21,21 @@ test('distance sampling clamps boundaries and interpolates the road', () => {
   assert.equal(atDistance(-1).x, track[0].x);
   assert.equal(atDistance(length + 10).y, track.at(-1).y);
   for (let d = 0; d < length; d += 13) assert(Object.values(atDistance(d)).every(Number.isFinite));
+});
+test('rendered road continues smoothly beyond both race endpoints', () => {
+  for (const d of [-ROAD_EXTENSION, 0, length, length + ROAD_EXTENSION]) {
+    const p = renderPointAtDistance(d);
+    assert(Object.values(p).every(Number.isFinite));
+    assert(Math.abs(Math.hypot(p.nx, p.ny) - 1) < 1e-10);
+  }
+  const start = renderPointAtDistance(-ROAD_EXTENSION),
+    startEnd = renderPointAtDistance(0),
+    finish = renderPointAtDistance(length),
+    finishEnd = renderPointAtDistance(length + ROAD_EXTENSION);
+  assert(Math.hypot(start.x - startEnd.x, start.y - startEnd.y) > ROAD_EXTENSION - 1);
+  assert(Math.hypot(finish.x - finishEnd.x, finish.y - finishEnd.y) > ROAD_EXTENSION - 1);
+  assert.equal(startEnd.a, track[0].a);
+  assert.equal(finish.a, track.at(-1).a);
 });
 test('AI outputs bounded controls across the entire track', () => {
   const s = new Float64Array(20);

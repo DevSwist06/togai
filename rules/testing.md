@@ -8,27 +8,27 @@ The accelerated end-to-end full-race driver replaces only the browser input call
 
 No `.only`, skipped tests, or ignored failure exits. `forbidOnly` is enabled for Playwright and source policy tests reject focused/skipped tests. Update this matrix whenever behavior is added or changed.
 
-| Feature                                                                                     | Coverage                                           |
-| ------------------------------------------------------------------------------------------- | -------------------------------------------------- |
-| Acceleration, braking, drift grip, steering                                                 | Real-WASM physics tests; browser keyboard test     |
-| Phone touch driving, simultaneous holds, cancellation, pause, portrait and landscape layout | Input unit test and mobile browser test            |
-| Road boundaries, AI full course, finite state                                               | Physics stress test and track/AI unit tests        |
-| Car contact, roadside crash, exact overlap                                                  | Physics and race regression tests                  |
-| Start/countdown, idle states                                                                | Race unit tests and browser countdown              |
-| Pause/resume, restart, focus loss                                                           | Race unit tests and browser lifecycle test         |
-| Head-start chase, five-second clear-pass win, rival escape                                  | Race boundary tests and full two-car simulation    |
-| Results, replay, garage                                                                     | Browser full race and race reset tests             |
-| Time formatting, drift time, keyboard aliases                                               | Race unit tests                                    |
-| HUD, minimap, responsive canvas                                                             | Browser assertions, pixel data and viewport checks |
-| WebGPU geometry/rendering                                                                   | Mesh unit tests and real WebGPU browser smoke test |
-| Camera tracking, translucent foreground smoke, trail/crash emission, pause, expiry, budgets | Presentation unit tests                            |
-| Audio toggle                                                                                | Browser UI plus audio graph test                   |
-| Missing WASM, unavailable GPU/adapter, device loss                                          | Browser failure-path tests                         |
-| Static serving and security headers                                                         | HTTP integration/security tests                    |
-| GitHub Pages project-path deployment                                                        | Deployment path regression test and Pages workflow |
-| Traversal, symlink escape, malformed URL, method abuse                                      | Security attack regression suite                   |
-| Invalid WASM inputs                                                                         | Compiled-WASM security tests                       |
-| Dependency vulnerabilities                                                                  | `npm audit --audit-level=low`                      |
-| Pre-commit checks the index and blocks failures                                             | Isolated tooling regression tests                  |
+| Feature                                                                                     | Coverage                                                |
+| ------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| Acceleration, braking, drift grip, steering                                                 | Real-WASM physics tests; browser keyboard test          |
+| Phone touch driving, simultaneous holds, cancellation, pause, portrait and landscape layout | Input unit test and mobile browser test                 |
+| Road boundaries, AI full course, finite state                                               | Physics stress test and track/AI unit tests             |
+| Car contact, roadside crash, exact overlap                                                  | Physics and race regression tests                       |
+| Start/countdown, idle states                                                                | Race unit tests and browser countdown                   |
+| Pause/resume, restart, focus loss                                                           | Race unit tests and browser lifecycle test              |
+| Head-start chase, five-second clear-pass win, rival escape                                  | Race boundary tests and full two-car simulation         |
+| Results, replay, garage                                                                     | Browser full race and race reset tests                  |
+| Time formatting, drift time, keyboard aliases                                               | Race unit tests                                         |
+| HUD, minimap, responsive canvas                                                             | Browser assertions, pixel data and viewport checks      |
+| WebGPU geometry/rendering and road endpoint continuation                                    | Mesh/road unit tests and real WebGPU browser smoke test |
+| Camera tracking, translucent foreground smoke, trail/crash emission, pause, expiry, budgets | Presentation unit tests                                 |
+| Audio toggle                                                                                | Browser UI plus audio graph test                        |
+| Missing WASM, unavailable GPU/adapter, device loss                                          | Browser failure-path tests                              |
+| Static serving and security headers                                                         | HTTP integration/security tests                         |
+| GitHub Pages project-path deployment                                                        | Deployment path regression test and Pages workflow      |
+| Traversal, symlink escape, malformed URL, method abuse                                      | Security attack regression suite                        |
+| Invalid WASM inputs                                                                         | Compiled-WASM security tests                            |
+| Dependency vulnerabilities                                                                  | `npm audit --audit-level=low`                           |
+| Pre-commit checks the index and blocks failures                                             | Isolated tooling regression tests                       |
 
 A passed suite means the listed cases pass. It is not a claim of exhaustive input coverage or an independent penetration test. Extend the matrix and tests with every feature.

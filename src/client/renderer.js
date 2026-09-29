@@ -1,4 +1,5 @@
 import { track, length, atDistance } from './track.js';
+export const ROAD_EXTENSION = 62;
 const color = (hex) => [
   parseInt(hex.slice(0, 2), 16) / 255,
   parseInt(hex.slice(2, 4), 16) / 255,
@@ -53,10 +54,25 @@ export class Mesh {
     this.quad([ax + nx, ay + ny], [bx + nx, by + ny], [bx - nx, by - ny], [ax - nx, ay - ny], col);
   }
 }
+export function renderPointAtDistance(d) {
+  if (d >= 0 && d <= length) return atDistance(d);
+  const endpoint = d < 0 ? track[0] : track.at(-1),
+    direction = d < 0 ? -1 : 1,
+    distance = Math.abs(d),
+    tangentX = Math.sin(endpoint.a) * direction,
+    tangentY = -Math.cos(endpoint.a) * direction;
+  return {
+    x: endpoint.x + tangentX * distance,
+    y: endpoint.y + tangentY * distance,
+    a: endpoint.a,
+    nx: endpoint.nx,
+    ny: endpoint.ny,
+  };
+}
 function roadStrip(mesh, width, col, offset = 0) {
-  for (let i = 0; i < track.length - 1; i++) {
-    const a = track[i],
-      b = track[i + 1];
+  for (let d = -ROAD_EXTENSION; d < length + ROAD_EXTENSION; d += 5) {
+    const a = renderPointAtDistance(d),
+      b = renderPointAtDistance(Math.min(d + 5, length + ROAD_EXTENSION));
     mesh.quad(
       [a.x + a.nx * (offset - width / 2), a.y + a.ny * (offset - width / 2)],
       [b.x + b.nx * (offset - width / 2), b.y + b.ny * (offset - width / 2)],
@@ -87,15 +103,15 @@ function scenery() {
   roadStrip(m, 23, palette.road);
   roadStrip(m, 0.23, color('b2b49a'), 10.4);
   roadStrip(m, 0.23, color('b2b49a'), -10.4);
-  for (let d = 4; d < length; d += 12) {
-    const a = atDistance(d),
-      b = atDistance(d + 5);
+  for (let d = -ROAD_EXTENSION; d < length + ROAD_EXTENSION; d += 12) {
+    const a = renderPointAtDistance(d),
+      b = renderPointAtDistance(Math.min(d + 5, length + ROAD_EXTENSION));
     m.line(a.x, a.y, b.x, b.y, 0.28, palette.line);
   }
   // Outer guardrails, reflectors and alternating curb sections.
-  for (let d = 10; d < length - 15; d += 7) {
-    const a = atDistance(d),
-      b = atDistance(d + 5.5);
+  for (let d = -ROAD_EXTENSION + 3; d < length + ROAD_EXTENSION - 3; d += 7) {
+    const a = renderPointAtDistance(d),
+      b = renderPointAtDistance(Math.min(d + 5.5, length + ROAD_EXTENSION));
     for (const side of [-1, 1]) {
       const o = side * 12.9;
       m.line(
@@ -133,7 +149,7 @@ function scenery() {
     m.disc(x - 1, y - 1, r * 0.65, [0.19 + c * 0.05, 0.28 + c * 0.05, 0.19 + c * 0.04], 6);
   }
   for (const d of [18, length - 13]) {
-    const p = atDistance(d);
+    const p = renderPointAtDistance(d);
     for (let row = 0; row < 2; row++)
       for (let col = 0; col < 12; col++) {
         const x = (col - 5.5) * 1.7,
