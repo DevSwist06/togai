@@ -62,6 +62,65 @@ test('keyboard acceleration, steering, handbrake, brake, HUD and restart', async
   await expect(page.locator('#percent')).toHaveText('0%');
 });
 
+test.describe('phone controls', () => {
+  test.use({ hasTouch: true, isMobile: true, viewport: { width: 390, height: 844 } });
+
+  test('start screen fits a landscape phone', async ({ page }) => {
+    await page.setViewportSize({ width: 844, height: 390 });
+    await ready(page);
+    await expect(page.locator('#start')).toBeInViewport();
+    await page.screenshot({ path: test.info().outputPath('phone-intro-landscape.png') });
+  });
+
+  test('multi-touch driving releases on cancel, pause, and rotation', async ({ page }) => {
+    await start(page);
+    const gas = page.getByRole('button', { name: 'Accelerate' });
+    const left = page.getByRole('button', { name: 'Steer left' });
+    const brake = page.getByRole('button', { name: 'Brake', exact: true });
+    await expect(gas).toBeInViewport();
+    await expect(left).toBeInViewport();
+    await page.screenshot({ path: test.info().outputPath('phone-portrait.png') });
+    const session = await page.context().newCDPSession(page);
+    const point = async (locator, id) => {
+      const box = await locator.boundingBox();
+      return { x: Math.round(box.x + box.width / 2), y: Math.round(box.y + box.height / 2), id };
+    };
+    const gasPoint = await point(gas, 1);
+    const leftPoint = await point(left, 2);
+    await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [gasPoint] });
+    await expect
+      .poll(async () => Number(await page.locator('#speed').textContent()))
+      .toBeGreaterThan(20);
+    await session.send('Input.dispatchTouchEvent', {
+      type: 'touchStart',
+      touchPoints: [gasPoint, leftPoint],
+    });
+    await expect(gas).toHaveClass(/held/);
+    await expect(left).toHaveClass(/held/);
+    await session.send('Input.dispatchTouchEvent', { type: 'touchCancel', touchPoints: [] });
+    await expect(gas).not.toHaveClass(/held/);
+    await expect(left).not.toHaveClass(/held/);
+
+    const brakePoint = await point(brake, 3);
+    await session.send('Input.dispatchTouchEvent', {
+      type: 'touchStart',
+      touchPoints: [brakePoint],
+    });
+    await expect
+      .poll(async () => Number(await page.locator('#speed').textContent()))
+      .toBeLessThan(8);
+    await page.locator('#pause').click();
+    await expect(brake).not.toHaveClass(/held/);
+    await expect(page.locator('#pause-panel')).toBeVisible();
+    await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await page.locator('#resume').click();
+    await page.setViewportSize({ width: 844, height: 390 });
+    await expect(gas).toBeInViewport();
+    await expect(left).toBeInViewport();
+    await page.screenshot({ path: test.info().outputPath('phone-landscape.png') });
+  });
+});
+
 test('countdown/race pause, resume, focus loss and audio toggle', async ({ page }) => {
   await ready(page);
   await page.keyboard.press('Enter');
@@ -92,7 +151,7 @@ test('real WASM full race reaches results, garage and replay', async ({ page }) 
     let source = await response.text();
     source = "import { atDistance as testPoint } from './track.js';\n" + source;
     source = source.replace(
-      'race.tick(readInput(keys));',
+      'race.tick(readInput(keys, touchKeys));',
       `const target = testPoint(s[8] + 13 + s[6] * 0.63); const desired = Math.atan2(target.x - s[0], -(target.y - s[1])); const delta = Math.atan2(Math.sin(desired - s[2]), Math.cos(desired - s[2])); race.tick({throttle:1, steer:Math.max(-1, Math.min(1, delta * 2.7)), brake:0, handbrake:0});`,
     );
     source = source.replace('accumulator += dt;', 'accumulator += 1;');
@@ -116,8 +175,8 @@ test('roadside crash presents the explosion loss result', async ({ page }) => {
   await page.route('**/game.js', async (route) => {
     const response = await route.fetch();
     const source = (await response.text()).replace(
-      'race.tick(readInput(keys));',
-      's[9] = 1; race.tick(readInput(keys));',
+      'race.tick(readInput(keys, touchKeys));',
+      's[9] = 1; race.tick(readInput(keys, touchKeys));',
     );
     await route.fulfill({ response, body: source });
   });

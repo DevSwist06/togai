@@ -11,6 +11,7 @@ No `.only`, skipped tests, or ignored failure exits. `forbidOnly` is enabled for
 | Feature                                                                                     | Coverage                                           |
 | ------------------------------------------------------------------------------------------- | -------------------------------------------------- |
 | Acceleration, braking, drift grip, steering                                                 | Real-WASM physics tests; browser keyboard test     |
+| Phone touch driving, simultaneous holds, cancellation, pause, portrait and landscape layout | Input unit test and mobile browser test            |
 | Road boundaries, AI full course, finite state                                               | Physics stress test and track/AI unit tests        |
 | Car contact, roadside crash, exact overlap                                                  | Physics and race regression tests                  |
 | Start/countdown, idle states                                                                | Race unit tests and browser countdown              |

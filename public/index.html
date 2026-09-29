@@ -53,6 +53,7 @@
       <div class="intro-bottom">
         <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><span>DRIVE</span></div>
         <div><kbd>SPACE</kbd><span>HANDBRAKE</span></div>
+        <div class="touch-hint">TOUCH CONTROLS APPEAR IN THE RACE</div>
         <p>A SMALL EXPERIMENT IN GOING SIDEWAYS.</p>
       </div>
     </main>
@@ -81,6 +82,17 @@
         <span><kbd>WASD</kbd> / <kbd>↑↓←→</kbd> DRIVE</span><span><kbd>SPACE</kbd> HANDBRAKE</span
         ><button type="button" id="restart" class="quiet"><kbd>R</kbd> RESTART</button
         ><button type="button" id="pause" class="quiet"><kbd>ESC</kbd> PAUSE</button>
+      </div>
+      <div id="touch-controls" role="group" aria-label="Touch driving controls">
+        <div class="touch-steering">
+          <button type="button" data-drive="KeyA" aria-label="Steer left">←</button>
+          <button type="button" data-drive="KeyD" aria-label="Steer right">→</button>
+        </div>
+        <div class="touch-pedals">
+          <button type="button" data-drive="Space" aria-label="Handbrake">DRIFT</button>
+          <button type="button" data-drive="KeyS" aria-label="Brake">BRAKE</button>
+          <button type="button" data-drive="KeyW" aria-label="Accelerate">GAS</button>
+        </div>
       </div>
     </section>
     <div id="countdown" hidden></div>

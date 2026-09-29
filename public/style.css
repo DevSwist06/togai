@@ -40,6 +40,11 @@ a:focus-visible {
   outline-offset: 6px;
 }
 
+.touch-hint,
+#touch-controls {
+  display: none;
+}
+
 button:hover {
   filter: brightness(1.15);
 }
@@ -721,5 +726,161 @@ body.playing .header-label {
 
   .brand {
     font-size: 25px;
+  }
+}
+
+@media (any-pointer: coarse) {
+  .intro-bottom > div:not(.touch-hint) {
+    display: none;
+  }
+
+  .touch-hint {
+    display: block;
+    color: var(--orange);
+  }
+
+  #touch-controls {
+    position: fixed;
+    z-index: 4;
+    bottom: calc(50px + env(safe-area-inset-bottom));
+    left: max(16px, env(safe-area-inset-left));
+    right: max(16px, env(safe-area-inset-right));
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    pointer-events: none;
+  }
+
+  .touch-steering,
+  .touch-pedals {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+  }
+
+  #touch-controls button {
+    width: clamp(54px, 14vw, 74px);
+    height: clamp(62px, 17vw, 78px);
+    padding: 0;
+    border: 1px solid #c9d8c37a;
+    border-radius: 12px;
+    background: #14201edb;
+    color: var(--paper);
+    font:
+      700 11px Arial,
+      Helvetica,
+      sans-serif;
+    letter-spacing: 0.5px;
+    pointer-events: auto;
+    touch-action: none;
+    user-select: none;
+  }
+
+  #touch-controls button[data-drive='KeyA'],
+  #touch-controls button[data-drive='KeyD'] {
+    font-size: 30px;
+  }
+
+  #touch-controls button[data-drive='KeyW'],
+  #touch-controls button.held {
+    border-color: var(--orange);
+    background: #a54e32ed;
+  }
+
+  .race-controls > span {
+    display: none;
+  }
+
+  .race-controls {
+    inset: calc(18px + env(safe-area-inset-top)) 145px auto auto;
+    z-index: 4;
+  }
+
+  .race-controls .quiet {
+    min-height: 44px;
+    font-size: 9px;
+  }
+
+  .race-controls kbd {
+    display: none;
+  }
+
+  .speed {
+    bottom: calc(160px + env(safe-area-inset-bottom));
+  }
+}
+
+@media (any-pointer: coarse) and (width <=600px) {
+  #touch-controls button {
+    width: clamp(50px, 13vw, 62px);
+    height: 64px;
+  }
+
+  .touch-steering,
+  .touch-pedals {
+    gap: 5px;
+  }
+
+  .race-top {
+    top: 88px;
+  }
+
+  .route {
+    top: 195px;
+  }
+
+  .speed {
+    bottom: calc(148px + env(safe-area-inset-bottom));
+  }
+}
+
+@media (any-pointer: coarse) and (height <=500px) {
+  #intro {
+    align-items: flex-start;
+    padding: 68px 6% 50px;
+  }
+
+  .brief,
+  .intro-bottom {
+    display: none;
+  }
+
+  .intro-copy h1 {
+    font-size: 62px;
+    margin: 12px 0;
+  }
+
+  .intro-copy p {
+    margin: 10px 0 14px;
+  }
+
+  #intro .primary {
+    padding: 15px 20px;
+  }
+
+  .speed {
+    bottom: calc(145px + env(safe-area-inset-bottom));
+  }
+
+  .speed strong {
+    font-size: 46px;
+  }
+
+  .speed .rev-track,
+  .speed #drift,
+  .map-legend {
+    display: none;
+  }
+
+  .race-top {
+    top: 65px;
+  }
+
+  .route {
+    top: 65px;
+  }
+
+  #minimap {
+    height: 95px;
   }
 }
