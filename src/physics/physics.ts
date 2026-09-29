@@ -1,4 +1,4 @@
-// Two cars and road constraints live entirely inside this WebAssembly module.
+// A player car chasing one AI car; road constraints live entirely inside this WebAssembly module.
 // State: x, y, heading, vx, vy, steering, speed, slip, progress, impact.
 const state = new Float64Array(20);
 const roadX = new Float64Array(2048);
@@ -19,12 +19,14 @@ export function setPoint(i: i32, x: f64, y: f64, d: f64): void {
 export function reset(x: f64, y: f64, heading: f64): void {
   if (!isFinite(x) || !isFinite(y) || !isFinite(heading)) return;
   for (let i = 0; i < 20; i++) state[i] = 0;
-  for (let c = 0; c < 2; c++) {
-    const k = c * 10;
-    state[k] = x + (c === 0 ? -3.0 : 3.0) * Math.cos(heading);
-    state[k + 1] = y + (c === 0 ? -3.0 : 3.0) * Math.sin(heading);
-    state[k + 2] = heading;
-  }
+  // The rival gets an 18 m head start. This leaves a clear passing window while
+  // keeping both cars on the road's initial tangent.
+  state[0] = x;
+  state[1] = y;
+  state[2] = heading;
+  state[10] = x + Math.sin(heading) * 18.0;
+  state[11] = y - Math.cos(heading) * 18.0;
+  state[12] = heading;
 }
 export function step(
   car: i32,

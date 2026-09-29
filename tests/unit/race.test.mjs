@@ -60,39 +60,37 @@ test('pause/resume preserves countdown and race timing; restart clears all race 
   r.resume();
   assert.equal(r.phase, 'race');
   r.driftTime = 5;
-  r.playerFinish = 4;
+  r.overtakeTime = 4;
   r.rivalFinish = 3;
   r.reset();
   assert.equal(r.driftTime, 0);
   assert.equal(r.elapsed, 0);
-  assert.equal(r.playerFinish, null);
+  assert.equal(r.overtakeTime, null);
   assert.equal(r.rivalFinish, null);
 });
-test('winning, losing, and tied finishes are classified; finishing freezes simulation', async () => {
-  for (const rivalFinish of [null, 10, 0]) {
-    const r = await setup();
-    r.reset();
-    r.phase = 'race';
-    r.rivalFinish = rivalFinish;
-    // Stub only motion here to isolate finish-line boundary semantics.
-    r.wasm = { step() {}, resolveCars() {} };
-    r.state[8] = FINISH_DISTANCE - 0.01;
-    r.tick(idle);
-    assert.equal(r.phase, 'race');
-    r.state[8] = FINISH_DISTANCE;
-    r.tick(idle);
-    assert.equal(r.phase, 'finished');
-    assert.equal(r.won, rivalFinish !== 0);
-    const t = r.elapsed;
-    r.tick(idle);
-    assert.equal(r.elapsed, t);
-    r.pause();
-    assert.equal(r.phase, 'finished');
-    r.rivalFinish = r.playerFinish;
-    assert.equal(r.won, true);
-  }
+test('overtaking wins immediately, while an exact tie does not', async () => {
+  const r = await setup();
+  r.reset();
+  r.phase = 'race';
+  // Stub only motion here to isolate overtake boundary semantics.
+  r.wasm = { step() {}, resolveCars() {} };
+  r.state[8] = 40;
+  r.state[18] = 40;
+  r.tick(idle);
+  assert.equal(r.phase, 'race');
+  assert.equal(r.won, false);
+  r.state[8] = 40.01;
+  r.tick(idle);
+  assert.equal(r.phase, 'finished');
+  assert.equal(r.won, true);
+  assert.equal(r.overtakeTime, STEP * 2);
+  const t = r.elapsed;
+  r.tick(idle);
+  assert.equal(r.elapsed, t);
+  r.pause();
+  assert.equal(r.phase, 'finished');
 });
-test('rival finish does not end the player run and records drift only at speed', async () => {
+test('rival reaching the finish ends the run and records drift only at speed', async () => {
   const r = await setup();
   r.reset();
   r.phase = 'race';
@@ -101,23 +99,25 @@ test('rival finish does not end the player run and records drift only at speed',
   r.state[6] = 12;
   r.state[7] = 0.15;
   r.tick(idle);
-  assert.equal(r.phase, 'race');
+  assert.equal(r.phase, 'finished');
   assert.equal(r.rivalFinish, STEP);
   assert.equal(r.driftTime, STEP);
   r.state[6] = 0;
   r.tick(idle);
   assert.equal(r.driftTime, STEP);
 });
-test('full two-car race completes through the real WASM and race lifecycle', async () => {
+test('full two-car race completes when the player overtakes through the real WASM lifecycle', async () => {
   const r = await setup();
   r.reset();
   const copy = new Float64Array(20);
   for (let i = 0; i < 120 * 110 && r.phase !== 'finished'; i++) {
     copy.set(r.state);
     copy.set(r.state.subarray(0, 10), 10);
-    r.tick({ ...aiInput(copy), handbrake: 0 });
+    const input = aiInput(copy);
+    r.tick({ throttle: 1, steer: input.steer, brake: 0, handbrake: 0 });
   }
   assert.equal(r.phase, 'finished');
-  assert(r.playerFinish > 50 && r.playerFinish < 100);
+  assert.equal(r.won, true);
+  assert(r.overtakeTime > 0 && r.overtakeTime < 100);
   assert([...r.state].every(Number.isFinite));
 });

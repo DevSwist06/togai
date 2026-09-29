@@ -93,7 +93,7 @@ test('real WASM full race reaches results, garage and replay', async ({ page }) 
     source = "import { aiInput as testAI } from './track.js';\n" + source;
     source = source.replace(
       'race.tick(readInput(keys));',
-      `const copy = new Float64Array(s); copy.set(s.subarray(0,10),10); race.tick({...testAI(copy), handbrake:0});`,
+      `const copy = new Float64Array(s); copy.set(s.subarray(0,10),10); const input = testAI(copy); race.tick({throttle:1, steer:input.steer, brake:0, handbrake:0});`,
     );
     source = source.replace('accumulator += dt;', 'accumulator += 1;');
     await route.fulfill({ response, body: source });
@@ -101,7 +101,8 @@ test('real WASM full race reaches results, garage and replay', async ({ page }) 
   await ready(page);
   await page.locator('#start').click();
   await expect(page.locator('#results')).toBeVisible({ timeout: 25_000 });
-  await expect(page.locator('#final-time')).toHaveText(/01:\d{2}\.\d{3}/);
+  await expect(page.locator('#result-title')).toContainText('OVERTAKE');
+  await expect(page.locator('#final-time')).toHaveText(/\d{2}:\d{2}\.\d{3}/);
   await expect(page.locator('#final-drift')).toHaveText(/\d+\.\ds/);
   await page.locator('#again').click();
   await expect(page.locator('#results')).toBeHidden();

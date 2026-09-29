@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="theme-color" content="#141b1b" />
-    <title>TOGAI — Downhill duels</title>
+    <title>TOGAI — Downhill chase</title>
     <link
       rel="icon"
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23f88456'/%3E%3Cpath d='M7 8h18v5h-6v13h-6V13H7z' fill='%23141b1b'/%3E%3C/svg%3E"
@@ -16,26 +16,23 @@
     <div class="grain"></div>
     <header>
       <a class="brand" href="./">TOGAI<span>峠</span></a
-      ><span class="header-label">DOWNHILL DUELS <i></i> PROTOTYPE 001</span
+      ><span class="header-label">DOWNHILL CHASE <i></i> PROTOTYPE 001</span
       ><button type="button" id="sound" class="quiet" aria-label="Toggle sound">
         SOUND OFF <span>↗</span>
       </button>
     </header>
     <main id="intro">
       <div class="intro-copy">
-        <div class="eyebrow"><span class="orange-line"></span> ONE MOUNTAIN. TWO DRIVERS.</div>
-        <h1>FIND YOUR<br /><em>LIMIT.</em></h1>
-        <p>
-          Late brakes. Loose rear. One clean line.<br />A downhill duel that’s over in about a
-          minute.
-        </p>
+        <div class="eyebrow"><span class="orange-line"></span> ONE MOUNTAIN. ONE TARGET.</div>
+        <h1>TAKE THE<br /><em>LEAD.</em></h1>
+        <p>Your rival starts ahead. Late brakes. Loose rear.<br />Get past before the finish.</p>
         <button type="button" id="start" class="primary" disabled>WARMING UP <span>↗</span></button>
         <div class="hint">NO SIGN-UP. JUST DRIVE.</div>
       </div>
       <aside class="brief">
         <div class="eyebrow">01 / THE COURSE</div>
         <h2>KASUMI PASS<span>霞峠</span></h2>
-        <div class="tags"><span>DOWNHILL</span><span>1 VS 1 · AI</span></div>
+        <div class="tags"><span>DOWNHILL</span><span>OVERTAKE · AI</span></div>
         <canvas
           role="img"
           id="preview-map"
@@ -95,7 +92,7 @@
       <h2 id="result-title">PASS<br /><em>CONQUERED.</em></h2>
       <p id="result-copy"></p>
       <div class="result-stats">
-        <div><small>YOUR TIME</small><strong id="final-time"></strong></div>
+        <div><small>OVERTAKE TIME</small><strong id="final-time"></strong></div>
         <div><small>DRIFT TIME</small><strong id="final-drift"></strong></div>
       </div>
       <button type="button" id="again" class="primary">ONE MORE RUN <span>↗</span></button

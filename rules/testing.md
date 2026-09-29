@@ -15,7 +15,7 @@ No `.only`, skipped tests, or ignored failure exits. `forbidOnly` is enabled for
 | Car contact, exact overlap                                       | Physics and security regression tests              |
 | Start/countdown, idle states                                     | Race unit tests and browser countdown              |
 | Pause/resume, restart, focus loss                                | Race unit tests and browser lifecycle test         |
-| Finish order, ties, player continuing after rival                | Race boundary tests and full two-car simulation    |
+| Head-start chase, overtake win, rival escape                     | Race boundary tests and full two-car simulation    |
 | Results, replay, garage                                          | Browser full race and race reset tests             |
 | Time formatting, drift time, keyboard aliases                    | Race unit tests                                    |
 | HUD, minimap, responsive canvas                                  | Browser assertions, pixel data and viewport checks |

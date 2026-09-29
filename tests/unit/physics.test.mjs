@@ -3,11 +3,12 @@ import assert from 'node:assert/strict';
 import { track, length, aiInput } from '../../src/client/track.js';
 import { physics } from '../helpers.mjs';
 import { STEP } from '../../src/client/race.js';
-test('reset starts two stationary cars side by side with no race progress', async () => {
+test('reset starts a stationary player 18 m behind the stationary rival', async () => {
   const { wasm: w, state: s } = await physics();
   assert.equal(s[6], 0);
   assert.equal(s[16], 0);
-  assert.equal(Math.round(Math.hypot(s[0] - s[10], s[1] - s[11])), 6);
+  assert.equal(Math.round(Math.hypot(s[0] - s[10], s[1] - s[11])), 18);
+  assert(s[11] < s[1]);
   w.step(0, 1, 0, 0, 0, STEP);
   w.reset(0, 0, track[0].a);
   assert.equal(s[8], 0);

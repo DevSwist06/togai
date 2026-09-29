@@ -26,7 +26,7 @@ export class Race {
   elapsed = 0;
   count = 3.2;
   driftTime = 0;
-  playerFinish = null;
+  overtakeTime = null;
   rivalFinish = null;
   constructor(wasm, state) {
     this.wasm = wasm;
@@ -37,7 +37,7 @@ export class Race {
     this.elapsed = 0;
     this.count = 3.2;
     this.driftTime = 0;
-    this.playerFinish = null;
+    this.overtakeTime = null;
     this.rivalFinish = null;
     this.phase = 'countdown';
   }
@@ -50,10 +50,7 @@ export class Race {
     if (this.phase === 'paused') this.phase = this.previousPhase;
   }
   get won() {
-    return (
-      this.playerFinish !== null &&
-      (this.rivalFinish === null || this.playerFinish <= this.rivalFinish)
-    );
+    return this.overtakeTime !== null;
   }
   tick(input) {
     if (this.phase === 'countdown') {
@@ -76,10 +73,9 @@ export class Race {
     );
     this.wasm.resolveCars();
     if (this.state[6] > 8 && Math.abs(this.state[7]) > 0.085) this.driftTime += STEP;
-    if (this.playerFinish === null && this.state[8] >= FINISH_DISTANCE)
-      this.playerFinish = this.elapsed;
     if (this.rivalFinish === null && this.state[18] >= FINISH_DISTANCE)
       this.rivalFinish = this.elapsed;
-    if (this.playerFinish !== null) this.phase = 'finished';
+    if (this.state[8] > this.state[18]) this.overtakeTime = this.elapsed;
+    if (this.overtakeTime !== null || this.rivalFinish !== null) this.phase = 'finished';
   }
 }

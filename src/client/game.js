@@ -130,16 +130,14 @@ function finish() {
   keys.clear();
   $('results').hidden = false;
   $('countdown').hidden = true;
-  const won =
-    race.playerFinish !== null &&
-    (race.rivalFinish === null || race.playerFinish <= race.rivalFinish);
+  const won = race.won;
   $('result-title').innerHTML = won
-    ? 'PASS<br><em>CONQUERED.</em>'
-    : 'ONE MORE<br><em>CHANCE.</em>';
+    ? 'OVERTAKE<br><em>CONFIRMED.</em>'
+    : 'RIVAL<br><em>ESCAPED.</em>';
   $('result-copy').textContent = won
-    ? 'Clean enough. Fast enough. The mountain is yours.'
-    : `Your rival took the pass${race.rivalFinish && race.playerFinish ? ` by ${(race.playerFinish - race.rivalFinish).toFixed(2)}s` : ''}. Brake early, then carry speed out.`;
-  $('final-time').textContent = race.playerFinish === null ? 'DNF' : fmt(race.playerFinish);
+    ? 'You found a way through. The pass is yours.'
+    : 'Your rival reached the finish before you could get past. Brake early, then carry speed out.';
+  $('final-time').textContent = won ? fmt(race.overtakeTime) : 'ESCAPED';
   $('final-drift').textContent = `${race.driftTime.toFixed(1)}s`;
   soundUpdate();
 }
@@ -160,10 +158,10 @@ function updateHUD() {
   const gap = Math.abs(s[8] - s[18]);
   $('gap').textContent =
     race.rivalFinish !== null
-      ? 'RIVAL FINISHED'
+      ? 'RIVAL ESCAPED'
       : gap < 3
         ? 'SIDE BY SIDE'
-        : `${first ? 'LEADING' : 'CHASING'} ${gap.toFixed(0)} M`;
+        : `${first ? 'OVERTAKING' : 'CHASING'} ${gap.toFixed(0)} M`;
   $('percent').textContent = `${Math.min(100, Math.floor((s[8] / (length - 14)) * 100))}%`;
   $('progress').style.width = `${Math.min(100, (s[8] / (length - 14)) * 100)}%`;
   $('drift').textContent =
