@@ -58,7 +58,9 @@ export function step(
     vy = state[k + 4];
   const speed = Math.sqrt(vx * vx + vy * vy);
   const steering = state[k + 5] + (steer - state[k + 5]) * Math.min(1.0, dt * 9.0);
-  const yaw = steering * Math.min(speed / 15.0, 1.0) * (1.12 + handbrake * 0.5);
+  // Handbrake initiates a broad slide without the abrupt rotation or speed loss
+  // of a simulation-focused drift model.
+  const yaw = steering * Math.min(speed / 15.0, 1.0) * (1.12 + handbrake * 0.32);
   angle += yaw * dt;
   const fx = Math.sin(angle),
     fy = -Math.cos(angle);
@@ -66,10 +68,10 @@ export function step(
     ry = Math.sin(angle);
   let forward = vx * fx + vy * fy;
   let lateral = vx * rx + vy * ry;
-  const grip = handbrake > 0.0 ? 1.55 : 5.0;
+  const grip = handbrake > 0.0 ? 2.3 : 5.0;
   lateral *= Math.exp(-grip * dt);
   const accel =
-    throttle * 13.0 - 0.45 - forward * Math.abs(forward) * 0.0066 - brake * 26.0 - handbrake * 3.5;
+    throttle * 13.0 - 0.45 - forward * Math.abs(forward) * 0.0066 - brake * 26.0 - handbrake * 1.5;
   forward = Math.max(0.0, forward + accel * dt);
   vx = fx * forward + rx * lateral;
   vy = fy * forward + ry * lateral;

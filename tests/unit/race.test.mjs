@@ -1,6 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Race, STEP, FINISH_DISTANCE, readInput, formatTime } from '../../src/client/race.js';
+import {
+  Race,
+  STEP,
+  FINISH_DISTANCE,
+  OVERTAKE_CLEARANCE,
+  OVERTAKE_CONFIRM_TIME,
+  readInput,
+  formatTime,
+} from '../../src/client/race.js';
 import { physics } from '../helpers.mjs';
 import { aiInput } from '../../src/client/track.js';
 const idle = { throttle: 0, steer: 0, brake: 0, handbrake: 0 };
@@ -60,30 +68,40 @@ test('pause/resume preserves countdown and race timing; restart clears all race 
   r.resume();
   assert.equal(r.phase, 'race');
   r.driftTime = 5;
+  r.overtakeDuration = 2;
   r.overtakeTime = 4;
   r.rivalFinish = 3;
   r.reset();
   assert.equal(r.driftTime, 0);
   assert.equal(r.elapsed, 0);
+  assert.equal(r.overtakeDuration, 0);
   assert.equal(r.overtakeTime, null);
   assert.equal(r.rivalFinish, null);
 });
-test('overtaking wins immediately, while an exact tie does not', async () => {
+test('a clear pass must hold for five uninterrupted seconds before it wins', async () => {
   const r = await setup();
   r.reset();
   r.phase = 'race';
   // Stub only motion here to isolate overtake boundary semantics.
   r.wasm = { step() {}, resolveCars() {} };
-  r.state[8] = 40;
+  r.state[8] = 40 + OVERTAKE_CLEARANCE - 0.01;
   r.state[18] = 40;
   r.tick(idle);
   assert.equal(r.phase, 'race');
   assert.equal(r.won, false);
-  r.state[8] = 40.01;
+  assert.equal(r.overtakeDuration, 0);
+  r.state[8] = 40 + OVERTAKE_CLEARANCE;
+  for (let i = 0; i < 120 * 4; i++) r.tick(idle);
+  assert.equal(r.phase, 'race');
+  assert.equal(r.won, false);
+  r.state[8] = 40;
   r.tick(idle);
+  assert.equal(r.overtakeDuration, 0);
+  r.state[8] = 40 + OVERTAKE_CLEARANCE;
+  for (let i = 0; i < OVERTAKE_CONFIRM_TIME / STEP; i++) r.tick(idle);
   assert.equal(r.phase, 'finished');
   assert.equal(r.won, true);
-  assert.equal(r.overtakeTime, STEP * 2);
+  assert.equal(r.overtakeTime, r.elapsed);
   const t = r.elapsed;
   r.tick(idle);
   assert.equal(r.elapsed, t);
@@ -106,7 +124,7 @@ test('rival reaching the finish ends the run and records drift only at speed', a
   r.tick(idle);
   assert.equal(r.driftTime, STEP);
 });
-test('full two-car race completes when the player overtakes through the real WASM lifecycle', async () => {
+test('full two-car race confirms a five-second clear pass through the real WASM lifecycle', async () => {
   const r = await setup();
   r.reset();
   const copy = new Float64Array(20);

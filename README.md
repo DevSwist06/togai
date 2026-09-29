@@ -1,6 +1,6 @@
 # TOGAI — downhill chase
 
-A top-down drifting proof of concept: a 1.95 km mountain pass, an AI rival with an 18 m head start, and instant retries. Overtake the rival before it reaches the finish to win. WebGPU graphics and 120 Hz WebAssembly physics. No accounts, backend data, or external runtime assets.
+A top-down drifting proof of concept: a 1.95 km mountain pass, a fast AI rival with an 18 m head start, and instant retries. Fully overtake the rival and hold that clear pass for five seconds before it reaches the finish to win. WebGPU graphics and 120 Hz WebAssembly physics. No accounts, backend data, or external runtime assets.
 
 ## Setup and play
 
@@ -29,7 +29,7 @@ The browser assets intentionally use relative URLs, so the game works both at a 
 | Escape      | Pause / resume |
 | M           | Sound on/off   |
 
-Brake before a corner, turn in, tap the handbrake, then release it and countersteer. You drive the orange car and begin behind the AI rival; take the lead to win, or lose if it reaches the finish first. This is keyboard-only 1v1 against AI, not online multiplayer. Downhill is represented visually; there is no elevation simulation.
+Brake before a corner, turn in, tap the handbrake, then release it and countersteer. The forgiving handbrake keeps more speed and rotation under control. You drive the orange car and begin behind the faster AI rival; get your rear axle fully past it and hold the clear pass for five seconds to win, or lose if it reaches the finish first. This is keyboard-only 1v1 against AI, not online multiplayer. Downhill is represented visually; there is no elevation simulation.
 
 ## Project layout
 

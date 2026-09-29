@@ -135,8 +135,8 @@ function finish() {
     ? 'OVERTAKE<br><em>CONFIRMED.</em>'
     : 'RIVAL<br><em>ESCAPED.</em>';
   $('result-copy').textContent = won
-    ? 'You found a way through. The pass is yours.'
-    : 'Your rival reached the finish before you could get past. Brake early, then carry speed out.';
+    ? 'You held a clean pass for five seconds. The pass is yours.'
+    : 'Your rival reached the finish before you confirmed the pass. Brake early, then carry speed out.';
   $('final-time').textContent = won ? fmt(race.overtakeTime) : 'ESCAPED';
   $('final-drift').textContent = `${race.driftTime.toFixed(1)}s`;
   soundUpdate();
@@ -159,9 +159,11 @@ function updateHUD() {
   $('gap').textContent =
     race.rivalFinish !== null
       ? 'RIVAL ESCAPED'
-      : gap < 3
-        ? 'SIDE BY SIDE'
-        : `${first ? 'OVERTAKING' : 'CHASING'} ${gap.toFixed(0)} M`;
+      : race.overtakeDuration > 0
+        ? `PASS CLEAR · ${(5 - race.overtakeDuration).toFixed(1)} S`
+        : gap < 3
+          ? 'SIDE BY SIDE'
+          : `${first ? 'OVERTAKING' : 'CHASING'} ${gap.toFixed(0)} M`;
   $('percent').textContent = `${Math.min(100, Math.floor((s[8] / (length - 14)) * 100))}%`;
   $('progress').style.width = `${Math.min(100, (s[8] / (length - 14)) * 100)}%`;
   $('drift').textContent =

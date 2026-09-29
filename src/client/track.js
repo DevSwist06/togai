@@ -96,7 +96,7 @@ export function aiInput(s) {
   const near = atDistance(p + 12),
     far = atDistance(p + 54);
   const bend = Math.abs(Math.atan2(Math.sin(far.a - near.a), Math.cos(far.a - near.a)));
-  const targetSpeed = Math.max(17, 36 - bend * 17);
+  const targetSpeed = Math.max(19, 39 - bend * 17);
   return {
     steer: Math.max(-1, Math.min(1, delta * 2.7)),
     throttle: speed < targetSpeed ? 1 : 0,

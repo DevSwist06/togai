@@ -24,7 +24,7 @@ test('acceleration moves down the pass and braking stops the car', async () => {
   for (let i = 0; i < 120; i++) w.step(0, 0, 0, 1, 0, STEP);
   assert(s[6] < speed * 0.1);
 });
-test('handbrake increases slip compared with normal grip', async () => {
+test('forgiving handbrake keeps a controllable drift compared with normal grip', async () => {
   const { wasm: w, state: s } = await physics();
   function slip(handbrake) {
     w.reset(0, 0, track[0].a);
@@ -34,7 +34,7 @@ test('handbrake increases slip compared with normal grip', async () => {
   }
   const grip = slip(0),
     drift = slip(1);
-  assert(drift > grip * 1.3);
+  assert(drift > grip * 1.15);
 });
 test('AI completes the course in 50–100 seconds without persistent barrier contact', async () => {
   const { wasm: w, state: s } = await physics();
