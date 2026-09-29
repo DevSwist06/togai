@@ -10,11 +10,17 @@ import {
   formatTime,
 } from '../../src/client/race.js';
 import { physics } from '../helpers.mjs';
-import { aiInput } from '../../src/client/track.js';
+import { atDistance } from '../../src/client/track.js';
 const idle = { throttle: 0, steer: 0, brake: 0, handbrake: 0 };
 async function setup() {
   const { wasm, state } = await physics();
   return new Race(wasm, state);
+}
+function centerLineInput(s) {
+  const target = atDistance(s[8] + 13 + s[6] * 0.63);
+  const desired = Math.atan2(target.x - s[0], -(target.y - s[1]));
+  const delta = Math.atan2(Math.sin(desired - s[2]), Math.cos(desired - s[2]));
+  return { throttle: 1, steer: Math.max(-1, Math.min(1, delta * 2.7)), brake: 0, handbrake: 0 };
 }
 test('keyboard aliases, simultaneous steering, and handbrake', () => {
   assert.deepEqual(readInput(new Set()), idle);
@@ -71,12 +77,35 @@ test('pause/resume preserves countdown and race timing; restart clears all race 
   r.overtakeDuration = 2;
   r.overtakeTime = 4;
   r.rivalFinish = 3;
+  r.crashReason = 'rival';
   r.reset();
   assert.equal(r.driftTime, 0);
   assert.equal(r.elapsed, 0);
   assert.equal(r.overtakeDuration, 0);
   assert.equal(r.overtakeTime, null);
   assert.equal(r.rivalFinish, null);
+  assert.equal(r.crashReason, null);
+});
+test('rival and roadside contact immediately end the run as crashes', async () => {
+  const r = await setup();
+  const realWasm = r.wasm;
+  r.wasm = realWasm;
+  r.reset();
+  r.phase = 'race';
+  r.wasm = { step() {}, resolveCars: () => 1 };
+  r.tick(idle);
+  assert.equal(r.phase, 'finished');
+  assert.equal(r.crashReason, 'rival');
+  assert.equal(r.won, false);
+  r.wasm = realWasm;
+  r.reset();
+  r.phase = 'race';
+  r.wasm = { step() {}, resolveCars: () => 0 };
+  r.state[9] = 1;
+  r.tick(idle);
+  assert.equal(r.phase, 'finished');
+  assert.equal(r.crashReason, 'roadside');
+  assert.equal(r.won, false);
 });
 test('a clear pass must hold for five uninterrupted seconds before it wins', async () => {
   const r = await setup();
@@ -127,12 +156,8 @@ test('rival reaching the finish ends the run and records drift only at speed', a
 test('full two-car race confirms a five-second clear pass through the real WASM lifecycle', async () => {
   const r = await setup();
   r.reset();
-  const copy = new Float64Array(20);
   for (let i = 0; i < 120 * 110 && r.phase !== 'finished'; i++) {
-    copy.set(r.state);
-    copy.set(r.state.subarray(0, 10), 10);
-    const input = aiInput(copy);
-    r.tick({ throttle: 1, steer: input.steer, brake: 0, handbrake: 0 });
+    r.tick(centerLineInput(r.state));
   }
   assert.equal(r.phase, 'finished');
   assert.equal(r.won, true);

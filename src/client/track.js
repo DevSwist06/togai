@@ -86,8 +86,8 @@ export function aiInput(s) {
   const speed = s[16],
     p = s[18];
   const target = atDistance(p + 13 + speed * 0.63);
-  // A subtle outside line leaves room for a pass.
-  const offset = 1.6;
+  // The AI holds an outside line, leaving a safe lane for a clean pass.
+  const offset = 3.8;
   const desired = Math.atan2(
     target.x + target.nx * offset - s[10],
     -(target.y + target.ny * offset - s[11]),

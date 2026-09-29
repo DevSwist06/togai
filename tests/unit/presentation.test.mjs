@@ -26,6 +26,21 @@ test('drifting creates finite smoke/trails with bounded storage and reset clears
   fx.reset();
   assert.equal(fx.smoke.length, 0);
   assert.equal(fx.marks.length, 0);
+  assert.equal(fx.sparks.length, 0);
+});
+test('crash explosion produces bounded sparks that expire', () => {
+  const fx = new DrivingEffects(),
+    mesh = new Mesh(),
+    s = new Float64Array(20);
+  fx.explode(10, -20);
+  assert.equal(fx.sparks.length, 36);
+  fx.explode(10, -20);
+  assert.equal(fx.sparks.length, 36);
+  fx.draw(0.1, 'finished', s, mesh);
+  assert(mesh.data.length > 0);
+  assert(mesh.data.every(Number.isFinite));
+  fx.draw(2, 'finished', s, mesh);
+  assert.equal(fx.sparks.length, 0);
 });
 test('stationary/gripping cars produce no drift effects and particles expire', () => {
   const fx = new DrivingEffects(),

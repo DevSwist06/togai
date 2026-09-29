@@ -3,15 +3,33 @@ import { drawCar, color } from './renderer.js';
 export class DrivingEffects {
   smoke = [];
   marks = [];
+  sparks = [];
   emission = 0;
   reset() {
     this.smoke.length = 0;
     this.marks.length = 0;
+    this.sparks.length = 0;
     this.emission = 0;
+  }
+  explode(x, y) {
+    if (this.sparks.length) return;
+    for (let i = 0; i < 36; i++) {
+      const a = (i * Math.PI * 2) / 36,
+        speed = 11 + (i % 5) * 1.7;
+      this.sparks.push({
+        x,
+        y,
+        vx: Math.cos(a) * speed,
+        vy: Math.sin(a) * speed,
+        r: 0.4 + (i % 3) * 0.13,
+        life: 0.65 + (i % 4) * 0.06,
+      });
+    }
   }
   draw(dt, phase, s, dynamic) {
     const smoke = this.smoke,
-      marks = this.marks;
+      marks = this.marks,
+      sparks = this.sparks;
 
     this.emission += dt;
     if (this.emission > 1 / 30 && phase === 'race') {
@@ -55,6 +73,20 @@ export class DrivingEffects {
       p.x += dt * 0.6;
       const fade = p.life / 0.7;
       dynamic.disc(p.x, p.y, p.r, [0.255 + fade * 0.12, 0.286 + fade * 0.11, 0.27 + fade * 0.1], 6);
+    }
+    for (let i = sparks.length - 1; i >= 0; i--) {
+      const p = sparks[i];
+      p.life -= dt;
+      if (p.life <= 0) {
+        sparks.splice(i, 1);
+        continue;
+      }
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.vx *= Math.exp(-dt * 3);
+      p.vy *= Math.exp(-dt * 3);
+      const fade = p.life / 0.83;
+      dynamic.disc(p.x, p.y, p.r * fade, p.r > 0.58 ? [1, 0.68, 0.2] : [0.95, 0.22, 0.08], 6);
     }
   }
 }

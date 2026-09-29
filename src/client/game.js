@@ -133,11 +133,21 @@ function finish() {
   const won = race.won;
   $('result-title').innerHTML = won
     ? 'OVERTAKE<br><em>CONFIRMED.</em>'
-    : 'RIVAL<br><em>ESCAPED.</em>';
+    : race.crashReason
+      ? 'CRASHED<br><em>OUT.</em>'
+      : 'RIVAL<br><em>ESCAPED.</em>';
   $('result-copy').textContent = won
     ? 'You held a clean pass for five seconds. The pass is yours.'
-    : 'Your rival reached the finish before you confirmed the pass. Brake early, then carry speed out.';
-  $('final-time').textContent = won ? fmt(race.overtakeTime) : 'ESCAPED';
+    : race.crashReason === 'rival'
+      ? 'You hit the rival. The run is over.'
+      : race.crashReason === 'roadside'
+        ? 'You hit the roadside. The run is over.'
+        : 'Your rival reached the finish before you confirmed the pass. Brake early, then carry speed out.';
+  $('final-time').textContent = won
+    ? fmt(race.overtakeTime)
+    : race.crashReason
+      ? 'CRASHED'
+      : 'ESCAPED';
   $('final-drift').textContent = `${race.driftTime.toFixed(1)}s`;
   soundUpdate();
 }
@@ -147,7 +157,10 @@ function simulate() {
   $('countdown').hidden = !['countdown', 'race'].includes(race.phase) || race.elapsed > 0.6;
   $('countdown').textContent =
     race.phase === 'countdown' ? Math.min(3, Math.ceil(race.count)) : 'GO';
-  if (before !== 'finished' && race.phase === 'finished') finish();
+  if (before !== 'finished' && race.phase === 'finished') {
+    if (race.crashReason) effects.explode(s[0], s[1]);
+    finish();
+  }
 }
 function updateHUD() {
   $('timer').textContent = fmt(race.elapsed);

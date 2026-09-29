@@ -32,6 +32,7 @@ export class Race {
   overtakeDuration = 0;
   overtakeTime = null;
   rivalFinish = null;
+  crashReason = null;
   constructor(wasm, state) {
     this.wasm = wasm;
     this.state = state;
@@ -44,6 +45,7 @@ export class Race {
     this.overtakeDuration = 0;
     this.overtakeTime = null;
     this.rivalFinish = null;
+    this.crashReason = null;
     this.phase = 'countdown';
   }
   pause() {
@@ -76,7 +78,13 @@ export class Race {
       0,
       STEP,
     );
-    this.wasm.resolveCars();
+    const rivalCollision = this.wasm.resolveCars();
+    if (rivalCollision || this.state[9] > 0) {
+      this.crashReason = rivalCollision ? 'rival' : 'roadside';
+      this.overtakeDuration = 0;
+      this.phase = 'finished';
+      return;
+    }
     if (this.state[6] > 8 && Math.abs(this.state[7]) > 0.085) this.driftTime += STEP;
     if (this.rivalFinish === null && this.state[18] >= FINISH_DISTANCE)
       this.rivalFinish = this.elapsed;

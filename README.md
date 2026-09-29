@@ -29,7 +29,7 @@ The browser assets intentionally use relative URLs, so the game works both at a 
 | Escape      | Pause / resume |
 | M           | Sound on/off   |
 
-Brake before a corner, turn in, tap the handbrake, then release it and countersteer. The forgiving handbrake keeps more speed and rotation under control. You drive the orange car and begin behind the faster AI rival; get your rear axle fully past it and hold the clear pass for five seconds to win, or lose if it reaches the finish first. This is keyboard-only 1v1 against AI, not online multiplayer. Downhill is represented visually; there is no elevation simulation.
+Brake before a corner, turn in, tap the handbrake, then release it and countersteer. The forgiving handbrake keeps more speed and rotation under control. You drive the orange car and begin behind the faster AI rival; get your rear axle fully past it and hold the clear pass for five seconds to win. Any contact with the rival or roadside causes a crash and ends the run; the rival reaching the finish also ends it. This is keyboard-only 1v1 against AI, not online multiplayer. Downhill is represented visually; there is no elevation simulation.
 
 ## Project layout
 
@@ -48,7 +48,7 @@ tests/security/   HTTP attack, WASM input, source policy checks
 dist/             Generated output; never commit
 ```
 
-The renderer uploads scenery once and uses two draw calls, a reusable dynamic GPU buffer, bounded effects, and a 1.5 device-pixel-ratio cap. The HUD updates independently of physics. Shared WASM memory avoids state serialization. The server and browser have no runtime npm dependencies.
+The renderer uploads scenery once and uses two draw calls, a reusable dynamic GPU buffer, bounded smoke, trail, and crash-spark effects, and a 1.5 device-pixel-ratio cap. The HUD updates independently of physics. Shared WASM memory avoids state serialization. The server and browser have no runtime npm dependencies.
 
 ## Quality gate
 

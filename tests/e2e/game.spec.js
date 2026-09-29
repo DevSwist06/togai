@@ -90,10 +90,10 @@ test('real WASM full race reaches results, garage and replay', async ({ page }) 
   await page.route('**/game.js', async (route) => {
     const response = await route.fetch();
     let source = await response.text();
-    source = "import { aiInput as testAI } from './track.js';\n" + source;
+    source = "import { atDistance as testPoint } from './track.js';\n" + source;
     source = source.replace(
       'race.tick(readInput(keys));',
-      `const copy = new Float64Array(s); copy.set(s.subarray(0,10),10); const input = testAI(copy); race.tick({throttle:1, steer:input.steer, brake:0, handbrake:0});`,
+      `const target = testPoint(s[8] + 13 + s[6] * 0.63); const desired = Math.atan2(target.x - s[0], -(target.y - s[1])); const delta = Math.atan2(Math.sin(desired - s[2]), Math.cos(desired - s[2])); race.tick({throttle:1, steer:Math.max(-1, Math.min(1, delta * 2.7)), brake:0, handbrake:0});`,
     );
     source = source.replace('accumulator += dt;', 'accumulator += 1;');
     await route.fulfill({ response, body: source });
@@ -110,6 +110,23 @@ test('real WASM full race reaches results, garage and replay', async ({ page }) 
   await page.locator('#back').click();
   await expect(page.locator('#intro')).toBeVisible();
   await expect(page.locator('#hud')).toBeHidden();
+});
+
+test('roadside crash presents the explosion loss result', async ({ page }) => {
+  await page.route('**/game.js', async (route) => {
+    const response = await route.fetch();
+    const source = (await response.text()).replace(
+      'race.tick(readInput(keys));',
+      's[9] = 1; race.tick(readInput(keys));',
+    );
+    await route.fulfill({ response, body: source });
+  });
+  await ready(page);
+  await page.locator('#start').click();
+  await expect(page.locator('#results')).toBeVisible({ timeout: 12_000 });
+  await expect(page.locator('#result-title')).toContainText('CRASHED');
+  await expect(page.locator('#result-copy')).toContainText('roadside');
+  await expect(page.locator('#final-time')).toHaveText('CRASHED');
 });
 
 test('unsupported WebGPU presents recovery instructions', async ({ page }) => {

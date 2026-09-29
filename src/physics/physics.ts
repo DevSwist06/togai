@@ -124,7 +124,8 @@ export function step(
   state[k + 7] = Math.atan2(lateral, Math.max(0.1, forward));
   state[k + 8] = prog;
 }
-export function resolveCars(): void {
+// Returns whether the player and rival made contact this simulation step.
+export function resolveCars(): i32 {
   let dx = state[10] - state[0],
     dy = state[11] - state[1];
   const dist = Math.sqrt(dx * dx + dy * dy);
@@ -148,5 +149,7 @@ export function resolveCars(): void {
       state[13] += dx * relative * 0.55;
       state[14] += dy * relative * 0.55;
     }
+    return 1;
   }
+  return 0;
 }
