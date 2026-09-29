@@ -12,15 +12,15 @@ export function formatTime(time) {
     .toString()
     .padStart(2, '0')}.${(ms % 1000).toString().padStart(3, '0')}`;
 }
-export function readInput(keys, touchKeys) {
-  const pressed = (code) => keys.has(code) || (touchKeys?.has(code) ?? false);
+export function readInput(keys, joystick) {
+  const keyboardSteer =
+    Number(keys.has('KeyD') || keys.has('ArrowRight')) -
+    Number(keys.has('KeyA') || keys.has('ArrowLeft'));
   return {
-    throttle: Number(pressed('KeyW') || pressed('ArrowUp')),
-    steer:
-      Number(pressed('KeyD') || pressed('ArrowRight')) -
-      Number(pressed('KeyA') || pressed('ArrowLeft')),
-    brake: Number(pressed('KeyS') || pressed('ArrowDown')),
-    handbrake: Number(pressed('Space')),
+    throttle: Math.max(Number(keys.has('KeyW') || keys.has('ArrowUp')), joystick?.throttle ?? 0),
+    steer: Math.max(-1, Math.min(1, keyboardSteer + (joystick?.steer ?? 0))),
+    brake: Math.max(Number(keys.has('KeyS') || keys.has('ArrowDown')), joystick?.brake ?? 0),
+    handbrake: Math.max(Number(keys.has('Space')), joystick?.handbrake ?? 0),
   };
 }
 /** Deterministic race lifecycle. No DOM, audio, or renderer dependencies. */

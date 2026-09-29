@@ -38,16 +38,21 @@ test('keyboard aliases, simultaneous steering, and handbrake', () => {
   });
   assert.equal(readInput(new Set(['KeyA', 'ArrowRight'])).steer, 0);
 });
-test('touch and keyboard inputs combine without losing simultaneous controls', () => {
-  const touch = new Set(['KeyW', 'KeyA', 'Space']);
-  assert.deepEqual(readInput(new Set(['KeyD', 'KeyS']), touch), {
-    throttle: 1,
-    steer: 0,
+test('joystick and keyboard inputs combine without losing analog controls', () => {
+  const joystick = { throttle: 0.7, steer: -0.4, brake: 0, handbrake: 1 };
+  assert.deepEqual(readInput(new Set(['KeyD', 'KeyS']), joystick), {
+    throttle: 0.7,
+    steer: 0.6,
     brake: 1,
     handbrake: 1,
   });
-  touch.clear();
-  assert.deepEqual(readInput(new Set(), touch), idle);
+  assert.deepEqual(readInput(new Set(['KeyW', 'KeyD']), joystick), {
+    throttle: 1,
+    steer: 0.6,
+    brake: 0,
+    handbrake: 1,
+  });
+  assert.deepEqual(readInput(new Set()), idle);
 });
 test('time formatting carries milliseconds over minute boundaries', () => {
   assert.equal(formatTime(0), '00:00.000');

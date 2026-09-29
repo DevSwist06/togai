@@ -3,37 +3,51 @@ import { Race, STEP as step, readInput, formatTime as fmt } from './race.js';
 import { createRenderer, Mesh } from './renderer.js';
 import { DrivingEffects } from './effects.js';
 import { updateCamera } from './camera.js';
+import { joystickInput } from './joystick.js';
 const $ = (id) => document.getElementById(id);
 const keys = new Set();
-const touchKeys = new Set();
-const touchPointers = new Map();
-function clearTouch() {
-  touchPointers.clear();
-  touchKeys.clear();
-  for (const button of document.querySelectorAll('[data-drive]')) button.classList.remove('held');
+const joystick = $('joystick');
+const knob = $('joystick-knob');
+let joystickPointer = null;
+let joystickState = joystickInput(0, 0, 1);
+function clearJoystick() {
+  joystickPointer = null;
+  joystickState = joystickInput(0, 0, 1);
+  knob.style.transform = '';
+  joystick.classList.remove('active');
 }
-for (const button of document.querySelectorAll('[data-drive]')) {
-  const code = button.dataset.drive;
-  button.addEventListener('pointerdown', (event) => {
-    if (!race || !['race', 'countdown'].includes(race.phase)) return;
-    event.preventDefault();
-    button.setPointerCapture(event.pointerId);
-    touchPointers.set(event.pointerId, code);
-    touchKeys.add(code);
-    button.classList.add('held');
+function moveJoystick(event) {
+  const bounds = joystick.getBoundingClientRect();
+  const radius = (bounds.width - knob.offsetWidth) / 2;
+  joystickState = joystickInput(
+    event.clientX - bounds.left - bounds.width / 2,
+    event.clientY - bounds.top - bounds.height / 2,
+    radius,
+  );
+  knob.style.transform = `translate(${joystickState.x * radius}px, ${joystickState.y * radius}px)`;
+}
+joystick.addEventListener('pointerdown', (event) => {
+  if (joystickPointer !== null || !race || !['race', 'countdown'].includes(race.phase)) return;
+  event.preventDefault();
+  joystickPointer = event.pointerId;
+  joystick.setPointerCapture(event.pointerId);
+  joystick.classList.add('active');
+  moveJoystick(event);
+});
+joystick.addEventListener('pointermove', (event) => {
+  if (event.pointerId !== joystickPointer) return;
+  event.preventDefault();
+  moveJoystick(event);
+});
+for (const name of ['pointerup', 'pointercancel', 'lostpointercapture']) {
+  joystick.addEventListener(name, (event) => {
+    if (event.pointerId === joystickPointer) clearJoystick();
   });
-  const release = (event) => {
-    if (touchPointers.get(event.pointerId) !== code) return;
-    touchPointers.delete(event.pointerId);
-    if (![...touchPointers.values()].includes(code)) {
-      touchKeys.delete(code);
-      button.classList.remove('held');
-    }
-  };
-  button.addEventListener('pointerup', release);
-  button.addEventListener('pointercancel', release);
-  button.addEventListener('lostpointercapture', release);
 }
+window.addEventListener('resize', clearJoystick);
+document.addEventListener('selectstart', (event) => {
+  if (matchMedia('(any-pointer: coarse)').matches) event.preventDefault();
+});
 let race;
 let camera = { x: 66, y: -155, zoom: 130 };
 let wasm,
@@ -84,7 +98,7 @@ function reset() {
   race.reset();
   accumulator = 0;
   keys.clear();
-  clearTouch();
+  clearJoystick();
   effects.reset();
   camera = { x: s[0], y: s[1] - 30, zoom: 83 };
   document.body.classList.add('playing');
@@ -100,7 +114,7 @@ function pause() {
   if (race.phase === 'race' || race.phase === 'countdown') {
     race.pause();
     keys.clear();
-    clearTouch();
+    clearJoystick();
     $('pause-panel').hidden = false;
     $('countdown').hidden = true;
   } else if (race.phase === 'paused') {
@@ -118,7 +132,7 @@ $('resume').onclick = pause;
 $('back').onclick = () => {
   race.phase = 'intro';
   keys.clear();
-  clearTouch();
+  clearJoystick();
   $('results').hidden = true;
   $('hud').hidden = true;
   $('intro').hidden = false;
@@ -152,19 +166,19 @@ window.addEventListener('keydown', (e) => {
 window.addEventListener('keyup', (e) => keys.delete(e.code));
 window.addEventListener('blur', () => {
   keys.clear();
-  clearTouch();
+  clearJoystick();
   if (race && (race.phase === 'race' || race.phase === 'countdown')) pause();
 });
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
-    clearTouch();
+    clearJoystick();
     if (race && (race.phase === 'race' || race.phase === 'countdown')) pause();
   }
 });
 function finish() {
   race.phase = 'finished';
   keys.clear();
-  clearTouch();
+  clearJoystick();
   $('results').hidden = false;
   $('countdown').hidden = true;
   const won = race.won;
@@ -190,7 +204,7 @@ function finish() {
 }
 function simulate() {
   const before = race.phase;
-  race.tick(readInput(keys, touchKeys));
+  race.tick(readInput(keys, joystickState));
   $('countdown').hidden = !['countdown', 'race'].includes(race.phase) || race.elapsed > 0.6;
   $('countdown').textContent =
     race.phase === 'countdown' ? Math.min(3, Math.ceil(race.count)) : 'GO';
@@ -341,7 +355,7 @@ async function init() {
     $('course-length').textContent = (length / 1000).toFixed(1);
     drawMap($('preview-map'));
     $('start').disabled = false;
-    $('start').innerHTML = 'START DESCENT <span>↗</span>';
+    $('start').firstChild.textContent = 'START DESCENT ';
     $('engine-status').textContent = 'ENGINE READY';
     requestAnimationFrame(frame);
   } catch (error) {

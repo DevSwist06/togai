@@ -29,7 +29,7 @@ The browser assets intentionally use relative URLs, so the game works both at a 
 | Escape      | Pause / resume |
 | M           | Sound on/off   |
 
-On a touch screen, hold the on-screen arrows to steer and the GAS, BRAKE, and DRIFT buttons to drive. You can hold several controls at once. The pause and restart buttons remain above the game; controls release when a touch is cancelled, the game pauses, or the page loses focus.
+On a touch screen, the start button shows a finish flag. Drag the centered joystick upward to accelerate, downward to brake, or sideways to steer. Drag toward a lower corner to use the handbrake while turning. The pause and restart buttons remain above the game; the joystick returns to neutral when a touch is cancelled, the game pauses, or the page loses focus. Touch interaction does not select page text.
 
 Brake before a corner, turn in, tap the handbrake, then release it and countersteer. The forgiving handbrake keeps more speed and rotation under control. You drive the orange car and begin behind the faster AI rival; get your rear axle fully past it and hold the clear pass for five seconds to win. Any contact with the rival or roadside causes a crash and ends the run; the rival reaching the finish also ends it. This is local 1v1 against AI, not online multiplayer. Downhill is represented visually; there is no elevation simulation.
 

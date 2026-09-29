@@ -29,7 +29,10 @@
           Your rival starts ahead. Late brakes. Loose rear.<br />Get fully past and hold the lead
           for five seconds.
         </p>
-        <button type="button" id="start" class="primary" disabled>WARMING UP <span>↗</span></button>
+        <button type="button" id="start" class="primary" disabled>
+          WARMING UP <span class="start-arrow" aria-hidden="true">↗</span
+          ><span class="start-emoji" aria-hidden="true">🏁</span>
+        </button>
         <div class="hint">NO SIGN-UP. JUST DRIVE.</div>
       </div>
       <aside class="brief">
@@ -53,7 +56,7 @@
       <div class="intro-bottom">
         <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><span>DRIVE</span></div>
         <div><kbd>SPACE</kbd><span>HANDBRAKE</span></div>
-        <div class="touch-hint">TOUCH CONTROLS APPEAR IN THE RACE</div>
+        <div class="touch-hint">DRAG THE JOYSTICK TO DRIVE. DOWN CORNERS DRIFT.</div>
         <p>A SMALL EXPERIMENT IN GOING SIDEWAYS.</p>
       </div>
     </main>
@@ -83,17 +86,13 @@
         ><button type="button" id="restart" class="quiet"><kbd>R</kbd> RESTART</button
         ><button type="button" id="pause" class="quiet"><kbd>ESC</kbd> PAUSE</button>
       </div>
-      <div id="touch-controls" role="group" aria-label="Touch driving controls">
-        <div class="touch-steering">
-          <button type="button" data-drive="KeyA" aria-label="Steer left">←</button>
-          <button type="button" data-drive="KeyD" aria-label="Steer right">→</button>
-        </div>
-        <div class="touch-pedals">
-          <button type="button" data-drive="Space" aria-label="Handbrake">DRIFT</button>
-          <button type="button" data-drive="KeyS" aria-label="Brake">BRAKE</button>
-          <button type="button" data-drive="KeyW" aria-label="Accelerate">GAS</button>
-        </div>
-      </div>
+      <button
+        type="button"
+        id="joystick"
+        aria-label="Driving joystick: drag up to accelerate, down to brake, sideways to steer, or down diagonally to drift"
+      >
+        <span id="joystick-knob" aria-hidden="true"></span>
+      </button>
     </section>
     <div id="countdown" hidden></div>
     <section id="pause-panel" class="modal" hidden>

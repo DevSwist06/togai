@@ -4,6 +4,7 @@ A change is done only when all applicable items below are satisfied. This applie
 
 - [ ] The requested behavior works, with explicit acceptance criteria and scope.
 - [ ] Code follows the architecture and performance rules; no unrelated changes.
+- [ ] Replaced features have no unused UI, logic, styles, tests, documentation, or implicit fallback left behind.
 - [ ] New behavior has meaningful positive, boundary, and failure tests. A bug fix includes a regression test that fails without the fix.
 - [ ] A browser-visible change has browser coverage and a visual inspection at desktop and compact widths.
 - [ ] Changed trust boundaries, dependencies, data handling, and exported WASM inputs have security checks.

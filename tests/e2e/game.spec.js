@@ -72,51 +72,65 @@ test.describe('phone controls', () => {
     await page.screenshot({ path: test.info().outputPath('phone-intro-landscape.png') });
   });
 
-  test('multi-touch driving releases on cancel, pause, and rotation', async ({ page }) => {
-    await start(page);
-    const gas = page.getByRole('button', { name: 'Accelerate' });
-    const left = page.getByRole('button', { name: 'Steer left' });
-    const brake = page.getByRole('button', { name: 'Brake', exact: true });
-    await expect(gas).toBeInViewport();
-    await expect(left).toBeInViewport();
+  test('joystick drives, brakes, and releases on cancel, pause, and rotation', async ({ page }) => {
+    await ready(page);
+    await expect(page.locator('#start .start-emoji')).toBeVisible();
+    await expect(page.locator('#start .start-arrow')).toBeHidden();
+    expect(await page.evaluate(() => getComputedStyle(document.body).userSelect)).toBe('none');
+    expect(
+      await page.evaluate(() => {
+        const selection = new Event('selectstart', { bubbles: true, cancelable: true });
+        document.querySelector('#start').dispatchEvent(selection);
+        return selection.defaultPrevented;
+      }),
+    ).toBe(true);
+    await page.locator('#start').click();
+    await expect(page.locator('#countdown')).toBeHidden({ timeout: 12_000 });
+    const joystick = page.getByRole('button', { name: /^Driving joystick/ });
+    await expect(joystick).toBeInViewport();
+    await expect(page.locator('[data-drive], #touch-controls')).toHaveCount(0);
     await page.screenshot({ path: test.info().outputPath('phone-portrait.png') });
     const session = await page.context().newCDPSession(page);
-    const point = async (locator, id) => {
-      const box = await locator.boundingBox();
-      return { x: Math.round(box.x + box.width / 2), y: Math.round(box.y + box.height / 2), id };
+    const box = await joystick.boundingBox();
+    const center = {
+      x: Math.round(box.x + box.width / 2),
+      y: Math.round(box.y + box.height / 2),
+      id: 1,
     };
-    const gasPoint = await point(gas, 1);
-    const leftPoint = await point(left, 2);
-    await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [gasPoint] });
+    const move = async (x, y) => {
+      await session.send('Input.dispatchTouchEvent', {
+        type: 'touchMove',
+        touchPoints: [{ ...center, x: center.x + x, y: center.y + y }],
+      });
+    };
+    await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [center] });
+    await move(0, -40);
     await expect
       .poll(async () => Number(await page.locator('#speed').textContent()))
       .toBeGreaterThan(20);
-    await session.send('Input.dispatchTouchEvent', {
-      type: 'touchStart',
-      touchPoints: [gasPoint, leftPoint],
-    });
-    await expect(gas).toHaveClass(/held/);
-    await expect(left).toHaveClass(/held/);
-    await session.send('Input.dispatchTouchEvent', { type: 'touchCancel', touchPoints: [] });
-    await expect(gas).not.toHaveClass(/held/);
-    await expect(left).not.toHaveClass(/held/);
-
-    const brakePoint = await point(brake, 3);
-    await session.send('Input.dispatchTouchEvent', {
-      type: 'touchStart',
-      touchPoints: [brakePoint],
-    });
+    await expect(joystick).toHaveClass(/active/);
+    await move(38, -38);
+    await expect
+      .poll(() => page.locator('#joystick-knob').evaluate((knob) => knob.style.transform))
+      .toContain('translate(');
+    await move(0, 40);
     await expect
       .poll(async () => Number(await page.locator('#speed').textContent()))
       .toBeLessThan(8);
+    await session.send('Input.dispatchTouchEvent', { type: 'touchCancel', touchPoints: [] });
+    await expect(joystick).not.toHaveClass(/active/);
+    await expect
+      .poll(() => page.locator('#joystick-knob').evaluate((knob) => knob.style.transform))
+      .toBe('');
+    await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [center] });
+    await move(0, -40);
     await page.locator('#pause').click();
-    await expect(brake).not.toHaveClass(/held/);
+    await expect(joystick).not.toHaveClass(/active/);
     await expect(page.locator('#pause-panel')).toBeVisible();
     await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
     await page.locator('#resume').click();
     await page.setViewportSize({ width: 844, height: 390 });
-    await expect(gas).toBeInViewport();
-    await expect(left).toBeInViewport();
+    await expect(joystick).toBeInViewport();
     await page.screenshot({ path: test.info().outputPath('phone-landscape.png') });
   });
 });
@@ -151,7 +165,7 @@ test('real WASM full race reaches results, garage and replay', async ({ page }) 
     let source = await response.text();
     source = "import { atDistance as testPoint } from './track.js';\n" + source;
     source = source.replace(
-      'race.tick(readInput(keys, touchKeys));',
+      'race.tick(readInput(keys, joystickState));',
       `const target = testPoint(s[8] + 13 + s[6] * 0.63); const desired = Math.atan2(target.x - s[0], -(target.y - s[1])); const delta = Math.atan2(Math.sin(desired - s[2]), Math.cos(desired - s[2])); race.tick({throttle:1, steer:Math.max(-1, Math.min(1, delta * 2.7)), brake:0, handbrake:0});`,
     );
     source = source.replace('accumulator += dt;', 'accumulator += 1;');
@@ -175,8 +189,8 @@ test('roadside crash presents the explosion loss result', async ({ page }) => {
   await page.route('**/game.js', async (route) => {
     const response = await route.fetch();
     const source = (await response.text()).replace(
-      'race.tick(readInput(keys, touchKeys));',
-      's[9] = 1; race.tick(readInput(keys, touchKeys));',
+      'race.tick(readInput(keys, joystickState));',
+      's[9] = 1; race.tick(readInput(keys, joystickState));',
     );
     await route.fulfill({ response, body: source });
   });

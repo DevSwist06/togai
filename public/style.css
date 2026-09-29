@@ -41,7 +41,8 @@ a:focus-visible {
 }
 
 .touch-hint,
-#touch-controls {
+#joystick,
+.start-emoji {
   display: none;
 }
 
@@ -730,6 +731,24 @@ body.playing .header-label {
 }
 
 @media (any-pointer: coarse) {
+  body {
+    user-select: none;
+  }
+
+  button {
+    touch-action: manipulation;
+    user-select: none;
+  }
+
+  #start .start-arrow {
+    display: none;
+  }
+
+  #start .start-emoji {
+    display: inline;
+    font-size: 24px;
+  }
+
   .intro-bottom > div:not(.touch-hint) {
     display: none;
   }
@@ -739,52 +758,40 @@ body.playing .header-label {
     color: var(--orange);
   }
 
-  #touch-controls {
+  #joystick {
     position: fixed;
     z-index: 4;
     bottom: calc(50px + env(safe-area-inset-bottom));
-    left: max(16px, env(safe-area-inset-left));
-    right: max(16px, env(safe-area-inset-right));
-    display: flex;
-    justify-content: space-between;
-    gap: 12px;
+    left: 50%;
+    display: block;
+    width: 144px;
+    height: 144px;
+    padding: 0;
+    border: 2px solid #c9d8c37a;
+    border-radius: 50%;
+    background:
+      linear-gradient(90deg, transparent 49%, #c9d8c344 50%, transparent 51%),
+      linear-gradient(transparent 49%, #c9d8c344 50%, transparent 51%), #14201edb;
+    box-shadow: 0 10px 35px #0008;
+    transform: translateX(-50%);
+    touch-action: none;
+  }
+
+  #joystick-knob {
+    position: absolute;
+    top: calc(50% - 31px);
+    left: calc(50% - 31px);
+    width: 62px;
+    height: 62px;
+    border: 2px solid var(--orange);
+    border-radius: 50%;
+    background: #a54e32ed;
+    box-shadow: 0 5px 15px #0008;
     pointer-events: none;
   }
 
-  .touch-steering,
-  .touch-pedals {
-    display: flex;
-    align-items: flex-end;
-    gap: 8px;
-  }
-
-  #touch-controls button {
-    width: clamp(54px, 14vw, 74px);
-    height: clamp(62px, 17vw, 78px);
-    padding: 0;
-    border: 1px solid #c9d8c37a;
-    border-radius: 12px;
-    background: #14201edb;
-    color: var(--paper);
-    font:
-      700 11px Arial,
-      Helvetica,
-      sans-serif;
-    letter-spacing: 0.5px;
-    pointer-events: auto;
-    touch-action: none;
-    user-select: none;
-  }
-
-  #touch-controls button[data-drive='KeyA'],
-  #touch-controls button[data-drive='KeyD'] {
-    font-size: 30px;
-  }
-
-  #touch-controls button[data-drive='KeyW'],
-  #touch-controls button.held {
+  #joystick.active {
     border-color: var(--orange);
-    background: #a54e32ed;
   }
 
   .race-controls > span {
@@ -806,21 +813,11 @@ body.playing .header-label {
   }
 
   .speed {
-    bottom: calc(160px + env(safe-area-inset-bottom));
+    bottom: calc(230px + env(safe-area-inset-bottom));
   }
 }
 
 @media (any-pointer: coarse) and (width <=600px) {
-  #touch-controls button {
-    width: clamp(50px, 13vw, 62px);
-    height: 64px;
-  }
-
-  .touch-steering,
-  .touch-pedals {
-    gap: 5px;
-  }
-
   .race-top {
     top: 88px;
   }
@@ -830,7 +827,7 @@ body.playing .header-label {
   }
 
   .speed {
-    bottom: calc(148px + env(safe-area-inset-bottom));
+    bottom: calc(230px + env(safe-area-inset-bottom));
   }
 }
 
