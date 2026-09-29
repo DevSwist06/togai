@@ -72,7 +72,14 @@ export class DrivingEffects {
       p.r += dt * 2;
       p.x += dt * 0.6;
       const fade = p.life / 0.7;
-      dynamic.disc(p.x, p.y, p.r, [0.255 + fade * 0.12, 0.286 + fade * 0.11, 0.27 + fade * 0.1], 6);
+      // Smoke stays above the cars, but its low alpha preserves a clear view through a drift.
+      dynamic.disc(
+        p.x,
+        p.y,
+        p.r,
+        [0.255 + fade * 0.12, 0.286 + fade * 0.11, 0.27 + fade * 0.1, fade * 0.16],
+        6,
+      );
     }
     for (let i = sparks.length - 1; i >= 0; i--) {
       const p = sparks[i];

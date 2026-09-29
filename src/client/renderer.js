@@ -17,7 +17,7 @@ export class Mesh {
     this.data = [];
   }
   vertex(x, y, c) {
-    this.data.push(x, y, ...c);
+    this.data.push(x, y, c[0], c[1], c[2], c[3] ?? 1);
   }
   tri(a, b, c, col) {
     this.vertex(...a, col);
@@ -153,12 +153,12 @@ function scenery() {
 const shader = `
 struct View { center: vec2f, extent: vec2f }
 @group(0) @binding(0) var<uniform> view: View;
-struct Output { @builtin(position) pos: vec4f, @location(0) color: vec3f }
-@vertex fn vertex(@location(0) pos: vec2f, @location(1) color: vec3f) -> Output {
+struct Output { @builtin(position) pos: vec4f, @location(0) color: vec4f }
+@vertex fn vertex(@location(0) pos: vec2f, @location(1) color: vec4f) -> Output {
  var o: Output; let p=(pos-view.center)/view.extent;
  o.pos=vec4f(p.x,-p.y,0,1);o.color=color;return o;
 }
-@fragment fn fragment(input: Output) -> @location(0) vec4f { return vec4f(input.color,1); }
+@fragment fn fragment(input: Output) -> @location(0) vec4f { return input.color; }
 `;
 export async function createRenderer(canvas) {
   if (!navigator.gpu)
@@ -182,15 +182,27 @@ export async function createRenderer(canvas) {
       entryPoint: 'vertex',
       buffers: [
         {
-          arrayStride: 20,
+          arrayStride: 24,
           attributes: [
             { shaderLocation: 0, offset: 0, format: 'float32x2' },
-            { shaderLocation: 1, offset: 8, format: 'float32x3' },
+            { shaderLocation: 1, offset: 8, format: 'float32x4' },
           ],
         },
       ],
     },
-    fragment: { module, entryPoint: 'fragment', targets: [{ format }] },
+    fragment: {
+      module,
+      entryPoint: 'fragment',
+      targets: [
+        {
+          format,
+          blend: {
+            color: { srcFactor: 'src-alpha', dstFactor: 'one-minus-src-alpha' },
+            alpha: { srcFactor: 'one', dstFactor: 'one-minus-src-alpha' },
+          },
+        },
+      ],
+    },
     primitive: { topology: 'triangle-list' },
   });
   const scene = scenery(),
@@ -247,10 +259,10 @@ export async function createRenderer(canvas) {
       pass.setPipeline(pipeline);
       pass.setBindGroup(0, group);
       pass.setVertexBuffer(0, staticBuffer);
-      pass.draw(scene.length / 5);
+      pass.draw(scene.length / 6);
       if (floats) {
         pass.setVertexBuffer(0, dynamicBuffer);
-        pass.draw(floats / 5);
+        pass.draw(floats / 6);
       }
       pass.end();
       device.queue.submit([encoder.finish()]);

@@ -35,11 +35,11 @@ test('mesh shapes produce finite triangle vertices, including a zero-length line
   const m = new Mesh(),
     c = color('f88456');
   m.rect(0, 0, 2, 4, 0, c);
-  assert.equal(m.data.length, 30);
+  assert.equal(m.data.length, 36);
   m.disc(0, 0, 1, c, 8);
   m.line(0, 0, 0, 0, 1, c);
   drawCar(m, 0, 0, Math.PI / 2, c, 0.8);
-  assert.equal(m.data.length % 15, 0);
+  assert.equal(m.data.length % 18, 0);
   assert(m.data.every(Number.isFinite));
   assert.deepEqual(color('ffffff'), [1, 1, 1]);
 });

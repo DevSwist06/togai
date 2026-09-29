@@ -20,6 +20,8 @@ test('drifting creates finite smoke/trails with bounded storage and reset clears
   assert(fx.smoke.length > 0);
   assert(fx.marks.length > 0);
   assert(mesh.data.every(Number.isFinite));
+  const initialOpacity = mesh.data.at(-1);
+  assert(initialOpacity > 0 && initialOpacity < 1);
   const life = fx.smoke[0].life;
   fx.draw(0, 'paused', s, mesh);
   assert.equal(fx.smoke[0].life, life);
@@ -27,6 +29,20 @@ test('drifting creates finite smoke/trails with bounded storage and reset clears
   assert.equal(fx.smoke.length, 0);
   assert.equal(fx.marks.length, 0);
   assert.equal(fx.sparks.length, 0);
+});
+test('foreground drift smoke becomes more transparent as it disperses', () => {
+  const fx = new DrivingEffects(),
+    mesh = new Mesh(),
+    s = new Float64Array(20);
+  s[6] = 20;
+  s[7] = 0.2;
+  fx.draw(0.05, 'race', s, mesh);
+  const freshOpacity = mesh.data.at(-1);
+  mesh.data.length = 0;
+  fx.draw(0.2, 'race', s, mesh);
+  const fadedOpacity = mesh.data.at(-1);
+  assert(freshOpacity > fadedOpacity);
+  assert(fadedOpacity > 0);
 });
 test('crash explosion produces bounded sparks that expire', () => {
   const fx = new DrivingEffects(),

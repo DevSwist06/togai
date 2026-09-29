@@ -48,7 +48,7 @@ tests/security/   HTTP attack, WASM input, source policy checks
 dist/             Generated output; never commit
 ```
 
-The renderer uploads scenery once and uses two draw calls, a reusable dynamic GPU buffer, bounded smoke, trail, and crash-spark effects, and a 1.5 device-pixel-ratio cap. The HUD updates independently of physics. Shared WASM memory avoids state serialization. The server and browser have no runtime npm dependencies.
+The renderer uploads scenery once and uses two draw calls, a reusable dynamic GPU buffer, bounded translucent foreground smoke, trail, and crash-spark effects, and a 1.5 device-pixel-ratio cap. Smoke drifts over cars without hiding them completely. The HUD updates independently of physics. Shared WASM memory avoids state serialization. The server and browser have no runtime npm dependencies.
 
 ## Quality gate
 
