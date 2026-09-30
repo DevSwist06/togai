@@ -69,7 +69,7 @@ Install the browser before the first test/commit:
 - **Other supported systems:** run `npx playwright install chromium`.
 - Set `PLAYWRIGHT_CHANNEL=chrome` to opt into installed Chrome elsewhere.
 
-Linux tests use software WebGPU; macOS uses the installed Chrome adapter. They verify rendering behavior, not hardware performance. Failed browser tests retain traces/screenshots in `test-results/`.
+Linux tests opt into Chromium's trusted-content SwiftShader software renderer for WebGPU; macOS uses the installed Chrome adapter. They verify rendering behavior, not hardware performance. Failed browser tests retain traces/screenshots in `test-results/`.
 
 `npm ci` installs the Git hook through `prepare`. If Git was initialized later, run `npm run hooks:install`. On commit, the hook exports the complete staged index into a temporary directory, installs its exact lockfile with lifecycle scripts disabled, and runs `npm run verify` there. Unstaged work is untouched. Expect the full gate to take tens of seconds or longer; it requires registry access and the installed test browser. It never commits, stages, or fixes files for you.
 

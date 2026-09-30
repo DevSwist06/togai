@@ -1,4 +1,6 @@
 import { defineConfig } from '@playwright/test';
+import { webgpuLaunchArgs } from './scripts/webgpu-launch-options.mjs';
+
 export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: false,
@@ -17,10 +19,7 @@ export default defineConfig({
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     launchOptions: {
-      args:
-        process.platform === 'darwin'
-          ? ['--enable-unsafe-webgpu']
-          : ['--enable-unsafe-webgpu', '--use-angle=swiftshader', '--enable-features=Vulkan'],
+      args: webgpuLaunchArgs(process.platform),
     },
   },
   webServer: {

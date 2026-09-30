@@ -165,7 +165,7 @@ test('real WASM full race reaches results, garage and replay', async ({ page }) 
     let source = await response.text();
     source = "import { atDistance as testPoint } from './track.js';\n" + source;
     source = source.replace(
-      'race.tick(readInput(keys, joystickState));',
+      'race.tick(readInput(keys, headingAlignedInput(joystickState, s?.[2])));',
       `const target = testPoint(s[8] + 13 + s[6] * 0.63); const desired = Math.atan2(target.x - s[0], -(target.y - s[1])); const delta = Math.atan2(Math.sin(desired - s[2]), Math.cos(desired - s[2])); race.tick({throttle:1, steer:Math.max(-1, Math.min(1, delta * 2.7)), brake:0, handbrake:0});`,
     );
     source = source.replace('accumulator += dt;', 'accumulator += 1;');
@@ -189,7 +189,7 @@ test('roadside crash presents the explosion loss result', async ({ page }) => {
   await page.route('**/game.js', async (route) => {
     const response = await route.fetch();
     const source = (await response.text()).replace(
-      'race.tick(readInput(keys, joystickState));',
+      'race.tick(readInput(keys, headingAlignedInput(joystickState, s?.[2])));',
       's[9] = 1; race.tick(readInput(keys, joystickState));',
     );
     await route.fulfill({ response, body: source });
