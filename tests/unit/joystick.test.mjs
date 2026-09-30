@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { joystickInput } from '../../src/client/joystick.js';
+import { headingAlignedInput, joystickInput } from '../../src/client/joystick.js';
 
 test('joystick maps vertical and horizontal drag to analog driving', () => {
   assert.deepEqual(joystickInput(0, -50, 50), {
@@ -37,4 +37,25 @@ test('invalid joystick geometry releases all controls', () => {
     const input = joystickInput(x, y, radius);
     assert.deepEqual(input, { x: 0, y: 0, throttle: 0, steer: 0, brake: 0, handbrake: 0 });
   }
+});
+
+test('heading-aligned joystick keeps forward stick as straight ahead relative to car heading', () => {
+  const facingRight = headingAlignedInput({ x: 1, y: 0 }, Math.PI / 2);
+  assert.equal(facingRight.throttle > 0.99, true);
+  assert.equal(facingRight.steer, 0);
+  const facingUp = headingAlignedInput({ x: 1, y: 0 }, 0);
+  assert.equal(facingUp.throttle < 0.01, true);
+  assert.equal(facingUp.steer > 0.99, true);
+});
+
+test('heading-aligned joystick falls back safely when heading is invalid', () => {
+  assert.deepEqual(
+    headingAlignedInput({ throttle: 0.4, steer: -0.2, brake: 0.1, handbrake: 1 }, NaN),
+    {
+      throttle: 0.4,
+      steer: -0.2,
+      brake: 0.1,
+      handbrake: 1,
+    },
+  );
 });
