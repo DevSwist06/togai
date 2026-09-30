@@ -1,4 +1,21 @@
 const clamp = (value) => Math.max(-1, Math.min(1, value));
+const HEADING_FOLLOW_RATE = 5;
+
+/**
+ * Ease a directional reference toward the car while taking the shortest path around ±π.
+ * The delay keeps a turn readable and lets the player hold the previous line briefly.
+ */
+export function followHeading(previousHeading, targetHeading, dt) {
+  if (!Number.isFinite(targetHeading))
+    return Number.isFinite(previousHeading) ? previousHeading : 0;
+  if (!Number.isFinite(previousHeading)) return targetHeading;
+  const duration = Number.isFinite(dt) && dt > 0 ? Math.min(dt, 0.25) : 0;
+  const delta = Math.atan2(
+    Math.sin(targetHeading - previousHeading),
+    Math.cos(targetHeading - previousHeading),
+  );
+  return previousHeading + delta * (1 - Math.exp(-HEADING_FOLLOW_RATE * duration));
+}
 
 /** Map a circular stick position to the four inputs used by the race. */
 export function joystickInput(dx, dy, radius) {

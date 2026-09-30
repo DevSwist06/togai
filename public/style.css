@@ -769,12 +769,22 @@ body.playing .header-label {
     padding: 0;
     border: 2px solid #c9d8c37a;
     border-radius: 50%;
-    background:
-      linear-gradient(90deg, transparent 49%, #c9d8c344 50%, transparent 51%),
-      linear-gradient(transparent 49%, #c9d8c344 50%, transparent 51%), #14201edb;
+    background: #14201edb;
     box-shadow: 0 10px 35px #0008;
     transform: translateX(-50%);
     touch-action: none;
+  }
+
+  #joystick::before {
+    position: absolute;
+    inset: 13px;
+    border-radius: 50%;
+    background:
+      linear-gradient(90deg, transparent 49%, #c9d8c344 50%, transparent 51%),
+      linear-gradient(transparent 49%, #c9d8c344 50%, transparent 51%);
+    content: '';
+    pointer-events: none;
+    transform: rotate(calc(-1 * var(--joystick-heading, 0rad)));
   }
 
   #joystick-knob {
@@ -788,6 +798,7 @@ body.playing .header-label {
     background: #a54e32ed;
     box-shadow: 0 5px 15px #0008;
     pointer-events: none;
+    z-index: 1;
   }
 
   #joystick.active {

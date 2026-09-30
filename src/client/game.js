@@ -3,13 +3,17 @@ import { Race, STEP as step, readInput, formatTime as fmt } from './race.js';
 import { createRenderer, Mesh } from './renderer.js';
 import { DrivingEffects } from './effects.js';
 import { updateCamera } from './camera.js';
-import { headingAlignedInput, joystickInput } from './joystick.js';
+import { followHeading, headingAlignedInput, joystickInput } from './joystick.js';
 const $ = (id) => document.getElementById(id);
 const keys = new Set();
 const joystick = $('joystick');
 const knob = $('joystick-knob');
 let joystickPointer = null;
 let joystickState = joystickInput(0, 0, 1);
+let joystickHeading = 0;
+function updateJoystickGuide() {
+  joystick.style.setProperty('--joystick-heading', `${joystickHeading}rad`);
+}
 function clearJoystick() {
   joystickPointer = null;
   joystickState = joystickInput(0, 0, 1);
@@ -96,6 +100,8 @@ function soundUpdate() {
 }
 function reset() {
   race.reset();
+  joystickHeading = s[2];
+  updateJoystickGuide();
   accumulator = 0;
   keys.clear();
   clearJoystick();
@@ -204,7 +210,9 @@ function finish() {
 }
 function simulate() {
   const before = race.phase;
-  race.tick(readInput(keys, headingAlignedInput(joystickState, s?.[2])));
+  joystickHeading = followHeading(joystickHeading, s?.[2], step);
+  updateJoystickGuide();
+  race.tick(readInput(keys, headingAlignedInput(joystickState, joystickHeading)));
   $('countdown').hidden = !['countdown', 'race'].includes(race.phase) || race.elapsed > 0.6;
   $('countdown').textContent =
     race.phase === 'countdown' ? Math.min(3, Math.ceil(race.count)) : 'GO';
@@ -347,6 +355,8 @@ async function init() {
     race = new Race(wasm, s);
     track.forEach((p, i) => wasm.setPoint(i, p.x, p.y, p.d));
     wasm.reset(0, 0, track[0].a);
+    joystickHeading = s[2];
+    updateJoystickGuide();
     renderer = await createRenderer($('game'));
     renderer.device.lost.then((info) =>
       showError(new Error(`The graphics device was lost (${info.reason}). Reload to reconnect.`)),

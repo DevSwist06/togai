@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { headingAlignedInput, joystickInput } from '../../src/client/joystick.js';
+import { followHeading, headingAlignedInput, joystickInput } from '../../src/client/joystick.js';
 
 test('joystick maps vertical and horizontal drag to analog driving', () => {
   assert.deepEqual(joystickInput(0, -50, 50), {
@@ -46,6 +46,23 @@ test('heading-aligned joystick keeps forward stick as straight ahead relative to
   const facingUp = headingAlignedInput({ x: 1, y: 0 }, 0);
   assert.equal(facingUp.throttle < 0.01, true);
   assert.equal(facingUp.steer > 0.99, true);
+});
+
+test('heading follower delays car turns while using the shortest path across the angle seam', () => {
+  const delayed = followHeading(0, Math.PI / 2, 1 / 120);
+  assert.equal(delayed > 0 && delayed < Math.PI / 2, true);
+  const settled = Array.from({ length: 120 }).reduce(
+    (heading) => followHeading(heading, Math.PI / 2, 1 / 120),
+    delayed,
+  );
+  assert.equal(Math.abs(settled - Math.PI / 2) < 0.02, true);
+  const acrossSeam = followHeading(Math.PI - 0.01, -Math.PI + 0.01, 1 / 120);
+  assert.equal(acrossSeam > Math.PI - 0.01, true);
+});
+
+test('heading follower safely holds its last valid heading when its target is invalid', () => {
+  assert.equal(followHeading(0.4, NaN, 1 / 120), 0.4);
+  assert.equal(followHeading(NaN, 0.4, 1 / 120), 0.4);
 });
 
 test('heading-aligned joystick falls back safely when heading is invalid', () => {
