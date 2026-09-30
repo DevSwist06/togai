@@ -7,4 +7,4 @@ These rules apply to every addition, fix, refactor, dependency change, and docum
 - [Security](security.md)
 - [Definition of done](definition-of-done.md)
 
-`npm run verify` is the common local, pre-commit, and CI gate. The pre-commit hook tests an isolated copy of the Git index, including partially staged files. It does not stash changes, edit files, auto-stage fixes, or create commits.
+`npm run verify` is the full local/pre-commit gate, and `npm run verify:ci` is the required GitHub Actions merge gate. The pre-commit hook tests an isolated copy of the Git index, including partially staged files. It does not stash changes, edit files, auto-stage fixes, or create commits.

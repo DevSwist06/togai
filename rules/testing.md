@@ -1,6 +1,6 @@
 # Testing
 
-Run `npm test` for a fresh WASM build, unit tests, and real Chromium/WebGPU browser tests. `npm run security` runs security regressions and the dependency audit. `npm run verify` combines all checks with lint.
+Run `npm test` for a fresh WASM build, unit tests, and real Chromium/WebGPU browser tests. `npm run security` runs security regressions and the dependency audit. `npm run verify` combines all checks with lint, while `npm run verify:ci` runs the required CI subset (lint/build/unit/security plus CI-stable browser failure-path checks).
 
 Tests must assert observable behavior, not mirror implementation. Prefer deterministic inputs; use the real WASM for driving and full races. Isolated lifecycle tests may stub motion to target exact finish boundaries. Do not mock the GPU in rendering smoke tests. The Linux browser suite uses software WebGPU for portability (macOS uses Chrome’s available adapter), so its frame rate is not a hardware performance benchmark.
 

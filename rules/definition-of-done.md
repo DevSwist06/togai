@@ -8,11 +8,11 @@ A change is done only when all applicable items below are satisfied. This applie
 - [ ] New behavior has meaningful positive, boundary, and failure tests. A bug fix includes a regression test that fails without the fix.
 - [ ] A browser-visible change has browser coverage and a visual inspection at desktop and compact widths.
 - [ ] Changed trust boundaries, dependencies, data handling, and exported WASM inputs have security checks.
-- [ ] `npm run verify` succeeds: **zero lint warnings/errors, a clean build, every unit/browser/security test passing, and zero reported dependency vulnerabilities at any severity**.
+- [ ] `npm run verify` succeeds locally: **zero lint warnings/errors, a clean build, every unit/browser/security test passing, and zero reported dependency vulnerabilities at any severity**.
 - [ ] No skipped/focused tests, secret material, generated build files, or unexplained linter suppressions are added.
 - [ ] Rules, README, and the feature/test matrix describe the final behavior.
 - [ ] The exact intended files are staged and the installed pre-commit hook passes against that index. Do not use `--no-verify` or bypass a failed gate.
-- [ ] CI passes the same gate before merge. Configure branch protection to require the `quality` job when a remote repository is connected.
+- [ ] CI passes `npm run verify:ci` before merge, and run the manual `full-webgpu` workflow job when browser/GPU-sensitive behavior changed. Configure branch protection to require the `quality` job when a remote repository is connected.
 
 An unavailable dependency registry, missing browser binary, unsupported test WebGPU adapter, or failed check blocks the gate. It is not a pass or a reason to silently skip checks. Browser dependencies must be installed before committing.
 

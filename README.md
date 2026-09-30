@@ -60,7 +60,9 @@ Read [the rules](rules/README.md) and [definition of done](rules/definition-of-d
 npm run verify
 ```
 
-This runs zero-warning ESLint (JS/AssemblyScript), Stylelint, HTML Validate, Prettier, a fresh WASM build, all unit/browser tests, security regression tests, source-policy checks, and `npm audit --audit-level=low` including development dependencies. Any failure or unavailable dependency registry blocks the gate.
+`npm run verify` runs zero-warning ESLint (JS/AssemblyScript), Stylelint, HTML Validate, Prettier, a fresh WASM build, all unit/browser tests, security regression tests, source-policy checks, and `npm audit --audit-level=low` including development dependencies. Any failure or unavailable dependency registry blocks the gate.
+
+`npm run verify:ci` is the required GitHub Actions gate. It runs lint, build, unit tests, security tests/audit, and CI-stable browser checks (`unsupported WebGPU`, missing physics/adapter recovery, and device-loss recovery). Full real-WebGPU browser coverage stays in `npm run verify` and in the manual `full-webgpu` workflow job.
 
 Install the browser before the first test/commit:
 
@@ -75,4 +77,4 @@ Linux tests use software WebGPU; macOS uses the installed Chrome adapter. They v
 
 Useful individual commands: `npm run format`, `npm run lint`, `npm test`, `npm run test:security`, `npm run security:audit`. `npm test` builds first; run `npm run build` before isolated WASM/security tests after physics edits.
 
-CI runs the same gate. Once a remote exists, require the `quality` job in branch protection. Local Git hooks can be bypassed; required CI is the merge safeguard. See the [feature coverage matrix](rules/testing.md) and [security scope](rules/security.md).
+CI requires `quality` (`npm run verify:ci`) for merge. Run `npm run verify` locally before commit and use the manual `full-webgpu` workflow job for full browser parity in GitHub Actions. Local Git hooks can be bypassed; required CI is the merge safeguard. See the [feature coverage matrix](rules/testing.md) and [security scope](rules/security.md).
