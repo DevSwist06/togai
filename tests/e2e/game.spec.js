@@ -21,8 +21,12 @@ test('real WebGPU boots without console errors and renders nonempty scene and ma
     if (m.type() === 'error') errors.push(m.text());
   });
   await ready(page);
-  await expect(page.locator('#engine-status')).toContainText('ENGINE READY');
+  await expect(page.getByText('ENGINE READY')).toHaveCount(0);
+  await expect(page.locator('#drift')).toHaveCount(0);
   await expect(page.locator('#performance')).toContainText('FPS');
+  await expect(page.locator('.intro-bottom > div:not(.touch-hint)').first()).toBeVisible();
+  await expect(page.locator('.intro-bottom > div:not(.touch-hint)').nth(1)).toBeVisible();
+  await expect(page.locator('.touch-hint')).toBeHidden();
   const image = await page.locator('#game').screenshot();
   expect(image.length).toBeGreaterThan(10_000);
   await page.screenshot({ path: test.info().outputPath('desktop.png') });
@@ -47,7 +51,6 @@ test('keyboard acceleration, steering, handbrake, brake, HUD and restart', async
     .toBeGreaterThan(45);
   await page.keyboard.down('d');
   await page.keyboard.down('Space');
-  await expect(page.locator('#drift')).toContainText('DRIFTING');
   await page.screenshot({ path: test.info().outputPath('drift.png') });
   await page.keyboard.up('Space');
   await page.keyboard.up('d');
@@ -62,6 +65,27 @@ test('keyboard acceleration, steering, handbrake, brake, HUD and restart', async
   await expect(page.locator('#percent')).toHaveText('0%');
 });
 
+test('clear pass shows five-second confirmation progress and resets when the race restarts', async ({
+  page,
+}) => {
+  await page.route('**/game.js', async (route) => {
+    const response = await route.fetch();
+    const source = (await response.text()).replace(
+      'race.tick(readInput(keys, headingAlignedInput(joystickState, joystickHeading)));',
+      "race.tick(readInput(keys, headingAlignedInput(joystickState, joystickHeading))); if (race.phase === 'race') race.overtakeDuration = 2.5;",
+    );
+    await route.fulfill({ response, body: source });
+  });
+  await start(page);
+  const progress = page.locator('#pass-confirmation');
+  await expect(progress).toBeVisible();
+  await expect(page.locator('#pass-time')).toHaveText('2.5 S');
+  await expect(page.locator('#pass-progress')).toHaveJSProperty('value', 2.5);
+  await page.screenshot({ path: test.info().outputPath('pass-confirmation.png') });
+  await page.keyboard.press('r');
+  await expect(progress).toBeHidden();
+});
+
 test.describe('phone controls', () => {
   test.use({ hasTouch: true, isMobile: true, viewport: { width: 390, height: 844 } });
 
@@ -74,6 +98,9 @@ test.describe('phone controls', () => {
 
   test('joystick drives, brakes, and releases on cancel, pause, and rotation', async ({ page }) => {
     await ready(page);
+    await expect(page.locator('.touch-hint')).toBeVisible();
+    await expect(page.locator('.intro-bottom > div:not(.touch-hint)').first()).toBeHidden();
+    await expect(page.locator('.intro-bottom > div:not(.touch-hint)').nth(1)).toBeHidden();
     await expect(page.locator('#start .start-emoji')).toBeVisible();
     await expect(page.locator('#start .start-arrow')).toBeHidden();
     expect(await page.evaluate(() => getComputedStyle(document.body).userSelect)).toBe('none');
@@ -87,6 +114,7 @@ test.describe('phone controls', () => {
     await page.locator('#start').click();
     await expect(page.locator('#countdown')).toBeHidden({ timeout: 12_000 });
     const joystick = page.getByRole('button', { name: /^Driving joystick/ });
+    await expect(page.locator('#position')).toHaveText('2/ 2');
     await expect(joystick).toBeInViewport();
     await expect(page.locator('[data-drive], #touch-controls')).toHaveCount(0);
     await page.screenshot({ path: test.info().outputPath('phone-portrait.png') });

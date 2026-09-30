@@ -5,6 +5,7 @@ import { DrivingEffects } from './effects.js';
 import { updateCamera } from './camera.js';
 import { followHeading, headingAlignedInput, joystickInput } from './joystick.js';
 const $ = (id) => document.getElementById(id);
+$('touch-hint').hidden = !window.matchMedia('(pointer: coarse)').matches || window.innerWidth > 600;
 const keys = new Set();
 const joystick = $('joystick');
 const knob = $('joystick-knob');
@@ -236,14 +237,13 @@ function updateHUD() {
         : gap < 3
           ? 'SIDE BY SIDE'
           : `${first ? 'OVERTAKING' : 'CHASING'} ${gap.toFixed(0)} M`;
+  const passProgress = Math.min(5, race.overtakeDuration);
+  const passConfirmation = $('pass-confirmation');
+  passConfirmation.hidden = passProgress <= 0;
+  $('pass-progress').value = passProgress;
+  $('pass-time').textContent = `${(5 - passProgress).toFixed(1)} S`;
   $('percent').textContent = `${Math.min(100, Math.floor((s[8] / (length - 14)) * 100))}%`;
   $('progress').style.width = `${Math.min(100, (s[8] / (length - 14)) * 100)}%`;
-  $('drift').textContent =
-    s[9] > 0.1
-      ? 'GUARDRAIL · EASE IT IN'
-      : Math.abs(s[7]) > 0.085 && s[6] > 8
-        ? '↗ DRIFTING · KEEP IT FLOWING'
-        : 'GRIP IT. THEN SLIP IT.';
   drawMap($('minimap'), true);
 }
 function drawMap(canvas, live = false) {
@@ -336,7 +336,6 @@ function showError(error) {
   soundUpdate();
   $('error').hidden = false;
   $('error-message').textContent = error.message || String(error);
-  $('engine-status').textContent = 'ENGINE UNAVAILABLE';
 }
 async function init() {
   try {
@@ -366,7 +365,6 @@ async function init() {
     drawMap($('preview-map'));
     $('start').disabled = false;
     $('start').firstChild.textContent = 'START DESCENT ';
-    $('engine-status').textContent = 'ENGINE READY';
     requestAnimationFrame(frame);
   } catch (error) {
     showError(error);

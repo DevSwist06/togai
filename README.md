@@ -31,7 +31,7 @@ The browser assets intentionally use relative URLs, so the game works both at a 
 
 On a touch screen, the start button shows a finish flag. Drag the centered joystick upward to accelerate, downward to brake, or sideways to steer. Drag toward a lower corner to use the handbrake while turning. Its direction guide eases toward the car during turns, briefly retaining the previous line so steering does not snap. The pause and restart buttons remain above the game; the joystick returns to neutral when a touch is cancelled, the game pauses, or the page loses focus. Touch interaction does not select page text.
 
-Brake before a corner, turn in, tap the handbrake, then release it and countersteer. The forgiving handbrake keeps more speed and rotation under control. You drive the orange car and begin behind the faster AI rival; get your rear axle fully past it and hold the clear pass for five seconds to win. Any contact with the rival or roadside causes a crash and ends the run; the rival reaching the finish also ends it. This is local 1v1 against AI, not online multiplayer. Downhill is represented visually; there is no elevation simulation.
+Brake before a corner, turn in, tap the handbrake, then release it and countersteer. The forgiving handbrake keeps more speed and rotation under control. You drive the orange car and begin behind the faster AI rival; get your rear axle fully past it and hold the clear pass for five seconds to win. The HUD shows the remaining time and progress while you hold the pass. Any contact with the rival or roadside causes a crash and ends the run; the rival reaching the finish also ends it. This is local 1v1 against AI, not online multiplayer. Downhill is represented visually; there is no elevation simulation.
 
 ## Project layout
 
@@ -46,7 +46,7 @@ tests/unit/       Simulation, geometry, controls, tooling
 tests/e2e/        Real Chromium/WebGPU feature tests
 tests/security/   HTTP attack, WASM input, source policy checks
 .githooks/        Mandatory local pre-commit entry point
-.github/workflows/quality.yml  CI quality gate
+.github/workflows/deploy-pages.yml  Pages build and deployment
 dist/             Generated output; never commit
 ```
 
@@ -75,4 +75,4 @@ Linux tests opt into Chromium's trusted-content SwiftShader software renderer fo
 
 Useful individual commands: `npm run format`, `npm run lint`, `npm test`, `npm run test:security`, `npm run security:audit`. `npm test` builds first; run `npm run build` before isolated WASM/security tests after physics edits.
 
-CI runs the same gate. Once a remote exists, require the `quality` job in branch protection. Local Git hooks can be bypassed; required CI is the merge safeguard. See the [feature coverage matrix](rules/testing.md) and [security scope](rules/security.md).
+The quality gate runs locally through the installed pre-commit hook. GitHub Actions is used for continuous deployment only: it builds the static site and deploys it to GitHub Pages from `main`. The WebGPU browser suite depends on the local browser and GPU environment, so it is not run on GitHub-hosted runners. See the [feature coverage matrix](rules/testing.md) and [security scope](rules/security.md).

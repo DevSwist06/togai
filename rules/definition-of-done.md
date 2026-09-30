@@ -12,7 +12,7 @@ A change is done only when all applicable items below are satisfied. This applie
 - [ ] No skipped/focused tests, secret material, generated build files, or unexplained linter suppressions are added.
 - [ ] Rules, README, and the feature/test matrix describe the final behavior.
 - [ ] The exact intended files are staged and the installed pre-commit hook passes against that index. Do not use `--no-verify` or bypass a failed gate.
-- [ ] CI passes the same gate before merge. Configure branch protection to require the `quality` job when a remote repository is connected.
+- [ ] Run `npm run verify` locally before committing. GitHub Actions is reserved for building and deploying GitHub Pages because the WebGPU browser suite is not supported reliably on hosted runners.
 
 An unavailable dependency registry, missing browser binary, unsupported test WebGPU adapter, or failed check blocks the gate. It is not a pass or a reason to silently skip checks. Browser dependencies must be installed before committing.
 

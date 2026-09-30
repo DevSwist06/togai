@@ -56,18 +56,26 @@
       <div class="intro-bottom">
         <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><span>DRIVE</span></div>
         <div><kbd>SPACE</kbd><span>HANDBRAKE</span></div>
-        <div class="touch-hint">DRAG THE JOYSTICK TO DRIVE. DOWN CORNERS DRIFT.</div>
+        <div id="touch-hint" class="touch-hint" hidden>
+          DRAG THE JOYSTICK TO DRIVE. DOWN CORNERS DRIFT.
+        </div>
         <p>A SMALL EXPERIMENT IN GOING SIDEWAYS.</p>
       </div>
     </main>
     <section id="hud" hidden>
       <div class="race-top">
         <div class="position">
-          <small>POSITION</small><strong id="position">1<span>/ 2</span></strong>
+          <small>POSITION</small><strong id="position">2<span>/ 2</span></strong>
         </div>
         <div class="time">
           <small>RACE TIME</small><strong id="timer">00:00.000</strong
           ><span id="gap">SIDE BY SIDE</span>
+          <div id="pass-confirmation" class="pass-confirmation" hidden>
+            <div><span>PASS CONFIRMED IN</span><b id="pass-time">5.0 S</b></div>
+            <progress id="pass-progress" max="5" value="0" aria-label="Pass confirmation progress">
+              0 of 5 seconds
+            </progress>
+          </div>
         </div>
       </div>
       <div class="route">
@@ -79,7 +87,6 @@
       <div class="speed">
         <div><strong id="speed">0</strong><span>KM/H</span></div>
         <div class="rev-track"><i id="rev"></i></div>
-        <span id="drift">GRIP IT. THEN SLIP IT.</span>
       </div>
       <div class="race-controls">
         <span><kbd>WASD</kbd> / <kbd>↑↓←→</kbd> DRIVE</span><span><kbd>SPACE</kbd> HANDBRAKE</span
@@ -118,8 +125,7 @@
       <button type="button" id="retry" class="primary">TRY AGAIN ↗</button>
     </div>
     <footer>
-      <span><i id="status-dot"></i><span id="engine-status">INITIALIZING ENGINE</span></span
-      ><span id="performance">WEBGPU + WASM</span>
+      <span id="performance">WEBGPU + WASM</span>
     </footer>
     <script type="module" src="./game.js"></script>
   </body>

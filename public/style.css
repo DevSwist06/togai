@@ -300,8 +300,7 @@ h2 {
   color: #7c8b7e;
 }
 
-.brief-bottom i,
-footer i {
+.brief-bottom i {
   width: 5px;
   height: 5px;
   background: #b8c896;
@@ -413,6 +412,48 @@ footer > span:first-child {
   letter-spacing: 1px;
 }
 
+.pass-confirmation {
+  width: 185px;
+  margin-top: 12px;
+  font: 8px monospace;
+  letter-spacing: 1px;
+  color: #c9d3c1;
+}
+
+.pass-confirmation > div {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.pass-confirmation b {
+  color: var(--orange);
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+
+.pass-confirmation progress {
+  display: block;
+  appearance: none;
+  width: 100%;
+  height: 3px;
+  background: #e0e6c52a;
+}
+
+.pass-confirmation progress::-webkit-progress-bar {
+  background: #e0e6c52a;
+}
+
+.pass-confirmation progress::-webkit-progress-value {
+  background: var(--orange);
+  transition: width 100ms linear;
+}
+
+.pass-confirmation progress::-moz-progress-bar {
+  background: var(--orange);
+  transition: width 100ms linear;
+}
+
 .route {
   position: fixed;
   right: 40px;
@@ -499,12 +540,6 @@ footer > span:first-child {
 
 .speed .rev-track {
   margin: 0 0 15px;
-}
-
-.speed > #drift {
-  font-size: 9px;
-  letter-spacing: 1px;
-  color: var(--orange);
 }
 
 .race-controls {
@@ -752,12 +787,22 @@ body.playing .header-label {
   .intro-bottom > div:not(.touch-hint) {
     display: none;
   }
+}
 
+@media (any-pointer: coarse) {
+  .intro-bottom > div:not(.touch-hint) {
+    display: none;
+  }
+}
+
+@media (width <=600px) {
   .touch-hint {
     display: block;
     color: var(--orange);
   }
+}
 
+@media (any-pointer: coarse) {
   #joystick {
     position: fixed;
     z-index: 4;
@@ -875,7 +920,6 @@ body.playing .header-label {
   }
 
   .speed .rev-track,
-  .speed #drift,
   .map-legend {
     display: none;
   }

@@ -8,7 +8,7 @@ The current threat model is a local static game with no accounts, backend data, 
 - Use `textContent` for variable/untrusted content. Existing HTML templates must remain application-owned fixed markup. Never insert user input into HTML.
 - Validate WASM index bounds and finite inputs before memory access. Keep memory and visual effects bounded.
 - Keep secrets out of the repository and logs. Environment files are ignored; policy checks scan source for common credential signatures. These checks are defense in depth, not a complete secret detector.
-- Pin dependencies, use `npm ci` in isolated gates, and audit all dependencies including development tools. Any audit finding or registry failure blocks pre-commit and CI. Do not auto-run `npm audit fix --force`.
+- Pin dependencies, use `npm ci` in the local pre-commit gate, and audit all dependencies including development tools. Any audit finding or registry failure blocks the local gate. Do not auto-run `npm audit fix --force`.
 - Do not skip a security check to ship. Record the attack regression with every security fix.
 
 Before adding hosting, networking, user input, persistence, or multiplayer, update this threat model and review the new trust boundaries. Local checks do not replace a production security review.
