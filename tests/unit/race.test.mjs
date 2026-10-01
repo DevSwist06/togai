@@ -180,3 +180,27 @@ test('full two-car race confirms a five-second clear pass through the real WASM 
   assert(r.overtakeTime > 0 && r.overtakeTime < 100);
   assert([...r.state].every(Number.isFinite));
 });
+
+test('starting-line briefing freezes both cars and the full countdown until dismissed', async () => {
+  const r = await setup();
+  r.reset({ briefing: true });
+  const before = Array.from(r.state);
+  for (let i = 0; i < 1200; i++) r.tick({ ...idle, throttle: 1 });
+  r.pause();
+  r.resume();
+  assert.equal(r.phase, 'briefing');
+  assert.deepEqual(Array.from(r.state), before);
+  assert.equal(r.elapsed, 0);
+  assert.equal(r.count, 3.2);
+  r.startCountdown();
+  assert.equal(r.phase, 'countdown');
+  r.tick(idle);
+  const count = r.count;
+  r.startCountdown();
+  assert.equal(r.count, count);
+  r.reset();
+  assert.equal(r.phase, 'countdown');
+  r.phase = 'intro';
+  r.startCountdown();
+  assert.equal(r.phase, 'intro');
+});

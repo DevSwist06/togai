@@ -62,6 +62,33 @@
         <p>A SMALL EXPERIMENT IN GOING SIDEWAYS.</p>
       </div>
     </main>
+    <dialog id="rival-dialogue" aria-labelledby="rival-name" aria-describedby="dialogue-copy">
+      <div
+        class="rival-portrait"
+        role="img"
+        aria-label="Ren smirks with one eyebrow raised and his arms crossed, sizing up the rookie"
+      >
+        <div class="rival-hair"></div>
+        <div class="rival-face"><i></i><i></i><b></b></div>
+        <div class="rival-jacket">
+          <span>01</span>
+          <div class="rival-arms"></div>
+        </div>
+      </div>
+      <div class="dialogue-box">
+        <div class="dialogue-heading">
+          <h2 id="rival-name">REN <span>LOCAL HOTSHOT</span></h2>
+          <span id="dialogue-page"></span>
+        </div>
+        <p id="dialogue-copy" aria-live="polite" aria-atomic="true"></p>
+        <div class="dialogue-actions">
+          <button type="button" id="dialogue-voice" class="quiet" aria-pressed="true">
+            VOICE ON ♪</button
+          ><button type="button" id="dialogue-next" class="primary">SHOW TEXT ▸</button>
+        </div>
+        <div class="dialogue-hint">ENTER / SPACE TO CONTINUE · ESC TO RETURN</div>
+      </div>
+    </dialog>
     <section id="hud" hidden>
       <div class="race-top">
         <div class="position">

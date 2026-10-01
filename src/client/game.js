@@ -1,3 +1,4 @@
+import { createDialogue } from './dialogue.js';
 import { track, length } from './track.js';
 import { Race, STEP as step, readInput, formatTime as fmt } from './race.js';
 import { createRenderer, Mesh } from './renderer.js';
@@ -99,21 +100,21 @@ function soundUpdate() {
   audio.osc.frequency.setTargetAtTime(36 + (s?.[6] || 0) * 2.7, audio.context.currentTime, 0.06);
   audio.filter.frequency.setTargetAtTime(220 + (s?.[6] || 0) * 12, audio.context.currentTime, 0.1);
 }
-function reset() {
-  race.reset();
+function reset({ briefing = false } = {}) {
+  race.reset({ briefing });
   joystickHeading = s[2];
   updateJoystickGuide();
   accumulator = 0;
   keys.clear();
   clearJoystick();
   effects.reset();
-  camera = { x: s[0], y: s[1] - 30, zoom: 83 };
+  camera = { x: s[0], y: s[1] + (briefing ? 32 : -30), zoom: 83 };
   document.body.classList.add('playing');
   $('intro').hidden = true;
-  $('hud').hidden = false;
+  $('hud').hidden = briefing;
   $('results').hidden = true;
   $('pause-panel').hidden = true;
-  $('countdown').hidden = false;
+  $('countdown').hidden = briefing;
   $('countdown').textContent = '3';
   updateHUD();
 }
@@ -131,12 +132,22 @@ function pause() {
   updateHUD();
   soundUpdate();
 }
-$('start').onclick = reset;
+const dialogue = createDialogue(() => {
+  race.startCountdown();
+  keys.clear();
+  $('hud').hidden = false;
+  $('countdown').hidden = false;
+}, backToGarage);
+function startBriefing() {
+  reset({ briefing: true });
+  dialogue.open();
+}
+$('start').onclick = startBriefing;
 $('restart').onclick = reset;
 $('again').onclick = reset;
 $('pause').onclick = pause;
 $('resume').onclick = pause;
-$('back').onclick = () => {
+function backToGarage() {
   race.phase = 'intro';
   keys.clear();
   clearJoystick();
@@ -146,9 +157,11 @@ $('back').onclick = () => {
   document.body.classList.remove('playing');
   camera = { x: 66, y: -155, zoom: 130 };
   wasm.reset(0, 0, track[0].a);
-};
+  $('start').focus();
+}
+$('back').onclick = backToGarage;
 window.addEventListener('keydown', (e) => {
-  if (!race || race.phase === 'error') return;
+  if (!race || race.phase === 'error' || dialogue.active) return;
   if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code))
     e.preventDefault();
   if (e.repeat) return;
@@ -165,7 +178,7 @@ window.addEventListener('keydown', (e) => {
     return;
   }
   if (e.code === 'Enter' && race.phase === 'intro' && !$('start').disabled) {
-    reset();
+    startBriefing();
     return;
   }
   keys.add(e.code);
@@ -311,7 +324,7 @@ function frame(now) {
       accumulator -= step;
     }
   } else accumulator = 0;
-  if (race.phase !== 'intro') updateCamera(camera, s, dt);
+  if (!['intro', 'briefing'].includes(race.phase)) updateCamera(camera, s, dt);
   dynamic.data.length = 0;
   effects.draw(race.phase === 'paused' ? 0 : dt, race.phase, s, dynamic);
   renderer.draw(camera, dynamic);
@@ -331,6 +344,7 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 function showError(error) {
+  dialogue.close();
   console.error(error);
   if (race) race.phase = 'error';
   soundUpdate();

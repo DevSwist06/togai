@@ -38,7 +38,7 @@ export class Race {
     this.wasm = wasm;
     this.state = state;
   }
-  reset() {
+  reset({ briefing = false } = {}) {
     this.wasm.reset(track[0].x, track[0].y, track[0].a);
     this.elapsed = 0;
     this.count = 3.2;
@@ -47,7 +47,10 @@ export class Race {
     this.overtakeTime = null;
     this.rivalFinish = null;
     this.crashReason = null;
-    this.phase = 'countdown';
+    this.phase = briefing ? 'briefing' : 'countdown';
+  }
+  startCountdown() {
+    if (this.phase === 'briefing') this.phase = 'countdown';
   }
   pause() {
     if (!['race', 'countdown'].includes(this.phase)) return;

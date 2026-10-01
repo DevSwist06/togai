@@ -936,3 +936,314 @@ body.playing .header-label {
     height: 95px;
   }
 }
+
+#rival-dialogue {
+  position: fixed;
+  inset: auto 0 max(28px, env(safe-area-inset-bottom));
+  width: min(780px, calc(100% - 36px));
+  max-height: none;
+  margin: 0 auto;
+  padding: 0;
+  overflow: visible;
+  border: 0;
+  background: transparent;
+  color: #263a32;
+}
+
+#rival-dialogue::backdrop {
+  background: transparent;
+}
+
+.dialogue-box {
+  position: relative;
+  padding: 24px 30px 18px;
+  border: 3px solid #d7d4bb;
+  border-radius: 26px 10px 26px 26px;
+  background: #fff9e7;
+  box-shadow:
+    0 10px 0 #162b2340,
+    0 18px 44px #091b2340;
+}
+
+.dialogue-box::before,
+.dialogue-box::after {
+  position: absolute;
+  top: -27px;
+  right: 52px;
+  width: 40px;
+  height: 28px;
+  background: #d7d4bb;
+  clip-path: polygon(100% 0, 80% 100%, 0 100%);
+  content: '';
+}
+
+.dialogue-box::after {
+  top: -20px;
+  right: 55px;
+  width: 32px;
+  height: 24px;
+  background: #fff9e7;
+}
+
+.rival-portrait {
+  position: absolute;
+  width: 190px;
+  height: 186px;
+  bottom: calc(100% - 8px);
+  right: 12px;
+  overflow: hidden;
+  filter: drop-shadow(3px 3px 0 #fff9e7);
+}
+
+.rival-face {
+  position: absolute;
+  width: 76px;
+  height: 88px;
+  left: 57px;
+  top: 24px;
+  background: #e6ad86;
+  border-radius: 20% 30% 44% 44%;
+  border: 4px solid #10201f;
+  transform: rotate(-9deg);
+}
+
+.rival-face i {
+  position: absolute;
+  width: 13px;
+  height: 6px;
+  top: 39px;
+  left: 12px;
+  border-top: 3px solid #162422;
+  background: linear-gradient(90deg, #fff9e7 40%, #162422 40% 75%, #fff9e7 75%);
+  transform: rotate(9deg);
+}
+
+.rival-face i::before {
+  position: absolute;
+  width: 18px;
+  height: 4px;
+  left: -2px;
+  top: -10px;
+  background: #162422;
+  content: '';
+  transform: rotate(9deg);
+}
+
+.rival-face i + i {
+  left: 45px;
+  transform: rotate(-12deg);
+}
+
+.rival-face i + i::before {
+  top: -15px;
+  transform: rotate(-18deg);
+}
+
+.rival-face b {
+  position: absolute;
+  width: 23px;
+  height: 8px;
+  top: 62px;
+  left: 28px;
+  background: #fff9e7;
+  border-bottom: 3px solid #803f3a;
+  border-radius: 0 0 90% 30%;
+  transform: rotate(-12deg);
+}
+
+.rival-hair {
+  position: absolute;
+  z-index: 1;
+  top: 7px;
+  left: 43px;
+  width: 99px;
+  height: 60px;
+  background: #10201f;
+  clip-path: polygon(
+    0 35%,
+    14% 20%,
+    9% 8%,
+    45% 12%,
+    68% 0,
+    95% 25%,
+    100% 95%,
+    75% 50%,
+    22% 73%,
+    8% 100%
+  );
+}
+
+.rival-jacket {
+  position: absolute;
+  top: 108px;
+  width: 190px;
+  height: 100px;
+  border: 5px solid #10201f;
+  border-radius: 65px 65px 0 0;
+  background: linear-gradient(90deg, #62a698 45%, #172522 45% 52%, #62a698 52%);
+}
+
+.rival-jacket span {
+  position: absolute;
+  top: 15px;
+  right: 31px;
+  color: #10201f;
+  font-size: 19px;
+  font-weight: 900;
+}
+
+.rival-arms::before,
+.rival-arms::after {
+  position: absolute;
+  width: 128px;
+  height: 28px;
+  top: 40px;
+  left: 8px;
+  border: 4px solid #10201f;
+  border-radius: 18px;
+  background: linear-gradient(90deg, #78b3a6 78%, #e6ad86 78%);
+  transform: rotate(12deg);
+  content: '';
+}
+
+.rival-arms::after {
+  left: 38px;
+  top: 44px;
+  background: linear-gradient(90deg, #e6ad86 20%, #62a698 20%);
+  transform: rotate(-13deg);
+}
+
+.speaking .rival-face b {
+  animation: rival-talk 0.18s steps(2) infinite;
+}
+
+@keyframes rival-talk {
+  to {
+    height: 11px;
+  }
+}
+
+.dialogue-heading,
+.dialogue-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dialogue-heading h2 {
+  margin: 0;
+  color: #285b4d;
+  font-size: 23px;
+}
+
+.dialogue-heading h2 span,
+#dialogue-page,
+.dialogue-hint {
+  font: 10px monospace;
+  letter-spacing: 1px;
+  color: #526456;
+}
+
+.dialogue-heading h2 span {
+  margin-left: 12px;
+}
+
+#dialogue-copy {
+  min-height: 94px;
+  margin: 16px 0;
+  color: #263a32;
+  font-size: 19px;
+  line-height: 1.6;
+}
+
+#dialogue-copy strong {
+  font-weight: 800;
+}
+
+#dialogue-copy .danger {
+  color: #b33c23;
+}
+
+#dialogue-copy .goal {
+  color: #23724f;
+}
+
+.dialogue-actions .quiet {
+  color: #526456;
+}
+
+.dialogue-actions .primary {
+  min-width: 155px;
+  padding: 14px 20px;
+  border-radius: 12px;
+  background: #285b4d;
+  color: #fff9e7;
+}
+
+.dialogue-hint {
+  margin-top: 14px;
+  font-size: 9px;
+}
+
+@media (width <= 600px) {
+  #rival-dialogue {
+    bottom: max(18px, env(safe-area-inset-bottom));
+  }
+
+  .rival-portrait {
+    right: 6px;
+    transform: scale(0.82);
+    transform-origin: bottom right;
+  }
+
+  .dialogue-box {
+    padding: 18px 19px 16px;
+  }
+
+  .dialogue-heading h2 span {
+    display: block;
+    margin: 5px 0 0;
+  }
+
+  #dialogue-copy {
+    min-height: 164px;
+    font-size: 16px;
+  }
+
+  .dialogue-hint {
+    font-size: 8px;
+    letter-spacing: 0;
+  }
+}
+
+@media (height <= 500px) {
+  #rival-dialogue {
+    bottom: 12px;
+  }
+
+  .rival-portrait {
+    transform: scale(0.62);
+    transform-origin: bottom right;
+  }
+
+  .dialogue-box {
+    padding: 12px 22px;
+  }
+
+  #dialogue-copy {
+    min-height: 56px;
+    margin: 8px 0;
+    font-size: 16px;
+  }
+
+  .dialogue-hint {
+    margin-top: 8px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .speaking .rival-face b {
+    animation: none;
+  }
+}
