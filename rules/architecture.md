@@ -16,8 +16,8 @@ Use ES modules, clear domain names, small responsibilities, strict equality, `co
 
 When a feature replaces another, remove the superseded UI, handlers, styles, tests, documentation, and configuration. Keep one active implementation for the requested platform; add a fallback only when the requirement explicitly calls for one.
 
-ESLint checks JavaScript and AssemblyScript; Stylelint checks CSS; HTML Validate checks HTML; Prettier owns formatting. All lint warnings are failures. `npm run format` formats files; review changes before staging. Do not disable rules to make a failing change pass without a documented technical reason.
+ESLint checks JavaScript, AssemblyScript, and CSS; HTML Validate checks HTML; Prettier owns formatting. All lint warnings are failures. `npm run format` formats files; review changes before staging. Do not disable rules to make a failing change pass without a documented technical reason.
 
 Keep simulation at 120 Hz independently of render rate. Bound particles and history, upload static geometry once, reuse buffers, and measure before optimizing. No accounts, telemetry, network multiplayer, or external runtime assets without a separately scoped change.
 
-CSS specificity lint is disabled because responsive and state selectors intentionally override base components; syntax, validity, conventions, and formatting remain enforced.
+CSS uses ESLint's recommended CSS rules and the project class naming rule. Responsive and state selectors intentionally override base components; syntax, validity, conventions, and formatting remain enforced.

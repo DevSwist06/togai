@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { RivalVoice } from '../../src/client/dialogue.js';
 
-test('voice schedules bounded syllables, ignores punctuation, mutes and reuses its graph', () => {
+test('voice schedules bounded syllables, ignores punctuation, stops and reuses its graph', () => {
   const notes = [];
   const levels = [];
   let created = 0;
@@ -36,10 +36,8 @@ test('voice schedules bounded syllables, ignores punctuation, mutes and reuses i
   const count = notes.length;
   voice.speak(' ');
   voice.speak('.');
-  voice.enabled = false;
-  voice.stop();
-  voice.speak('c');
   assert.equal(notes.length, count);
+  voice.stop();
   assert.equal(levels.at(-1), 0);
 });
 

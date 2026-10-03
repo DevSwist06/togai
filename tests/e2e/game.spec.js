@@ -191,7 +191,7 @@ test('countdown/race pause, resume, focus loss and audio toggle', async ({ page 
   await expect(page.locator('#timer')).toHaveText('00:00.000');
   await page.locator('#resume').click();
   await expect(page.locator('#countdown')).toBeHidden({ timeout: 12_000 });
-  await page.locator('#sound').click();
+  await page.keyboard.press('m');
   await expect(page.locator('#sound')).toContainText('SOUND ON');
   await page.keyboard.press('m');
   await expect(page.locator('#sound')).toContainText('SOUND OFF');
@@ -300,7 +300,7 @@ test('audio graph responds to driving and mutes when paused', async ({ page }) =
     };
   });
   await start(page);
-  await page.locator('#sound').click();
+  await page.keyboard.press('m');
   await expect.poll(() => page.evaluate(() => window.__audioValues.at(-1))).toBeGreaterThan(0);
   await page.keyboard.press('Escape');
   await expect.poll(() => page.evaluate(() => window.__audioValues.at(-1))).toBe(0);
@@ -332,6 +332,7 @@ test('rival briefing highlights rules, holds the race, supports mute, cancel and
     await route.fulfill({ response, body: source });
   });
   await ready(page);
+  await page.locator('#sound').click();
   await page.locator('#start').click();
   await expect(page.getByRole('dialog')).toBeVisible();
   await expect(page.locator('#countdown')).toBeHidden();
@@ -363,14 +364,21 @@ test('rival briefing highlights rules, holds the race, supports mute, cancel and
   await expect(page.locator('#dialogue-copy')).toContainText('First run, rookie?');
   const bubble = await page.locator('.dialogue-box').boundingBox();
   const portrait = await page.locator('.rival-portrait').boundingBox();
-  expect(portrait.x).toBeGreaterThan(bubble.x + bubble.width / 2);
+  expect(portrait.x + portrait.width / 2).toBeGreaterThan(bubble.x + bubble.width / 2);
+  expect(portrait.y + portrait.height).toBeGreaterThan(bubble.y);
+  await expect(page.locator('.rival-portrait')).toHaveCSS('clip-path', 'none');
+  await expect(page.locator('.rival-portrait')).toHaveJSProperty('complete', true);
+  expect(
+    await page.locator('.rival-portrait').evaluate((image) => image.naturalWidth),
+  ).toBeGreaterThan(0);
+  await expect(page.locator('.dialogue-box')).toHaveCSS('background-color', 'rgb(245, 236, 210)');
+  await expect(page.locator('#dialogue-next')).toHaveCSS('color', 'rgb(38, 60, 51)');
   expect(portrait.y).toBeLessThan(bubble.y);
   await page.screenshot({ path: test.info().outputPath('rival-desktop.png') });
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(page.locator('#dialogue-next')).toBeInViewport();
   await page.screenshot({ path: test.info().outputPath('rival-phone.png') });
-  await page.locator('#dialogue-voice').click();
-  await expect(page.locator('#dialogue-voice')).toHaveAttribute('aria-pressed', 'false');
+  await expect(page.locator('#dialogue-voice')).toHaveCount(0);
   await page.locator('#dialogue-next').click();
   await page.keyboard.press('Enter');
   await expect(page.locator('#dialogue-copy strong')).toHaveText('don’t hit my car.');
@@ -412,7 +420,15 @@ test('briefing works with reduced motion and unavailable audio', async ({ page }
   expect(errors).toEqual([]);
 });
 
-test('rival speech follows text and stops when muted or the dialogue closes', async ({ page }) => {
+test('briefing text reveals automatically with menu sound off', async ({ page }) => {
+  await ready(page);
+  await expect(page.locator('#sound')).toHaveAttribute('aria-pressed', 'false');
+  await page.locator('#start').click();
+  await expect(page.locator('#dialogue-next')).toHaveText('NEXT ▸', { timeout: 10_000 });
+  await expect(page.locator('#dialogue-copy')).toContainText('One scrape and your run is over.');
+});
+
+test('menu sound enables rival speech and speech stops when dialogue closes', async ({ page }) => {
   await page.addInitScript(() => {
     const NativeAudio = window.AudioContext;
     window.__voicePitches = [];
@@ -439,17 +455,11 @@ test('rival speech follows text and stops when muted or the dialogue closes', as
     };
   });
   await ready(page);
+  await page.locator('#sound').click();
   await page.locator('#start').click();
   await expect
     .poll(() => page.evaluate(() => new Set(window.__voicePitches).size))
     .toBeGreaterThan(1);
-  await page.locator('#dialogue-voice').click();
-  const count = await page.evaluate(() => window.__voicePitches.length);
-  await page.waitForTimeout(180);
-  expect(await page.evaluate(() => window.__voicePitches.length)).toBe(count);
-  expect(await page.evaluate(() => window.__voiceLevel)).toBe(0);
-  await page.locator('#dialogue-voice').click();
-  await expect.poll(() => page.evaluate(() => window.__voicePitches.length)).toBeGreaterThan(count);
   await page.keyboard.press('Escape');
   const stopped = await page.evaluate(() => window.__voicePitches.length);
   await page.waitForTimeout(180);

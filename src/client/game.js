@@ -90,6 +90,7 @@ function setSound(on) {
     audio.context.resume();
   }
   $('sound').innerHTML = `SOUND ${on ? 'ON' : 'OFF'} <span>↗</span>`;
+  $('sound').setAttribute('aria-pressed', String(on));
 }
 $('retry').onclick = () => location.reload();
 $('sound').onclick = () => setSound(!soundOn);
@@ -132,12 +133,16 @@ function pause() {
   updateHUD();
   soundUpdate();
 }
-const dialogue = createDialogue(() => {
-  race.startCountdown();
-  keys.clear();
-  $('hud').hidden = false;
-  $('countdown').hidden = false;
-}, backToGarage);
+const dialogue = createDialogue(
+  () => {
+    race.startCountdown();
+    keys.clear();
+    $('hud').hidden = false;
+    $('countdown').hidden = false;
+  },
+  backToGarage,
+  () => soundOn,
+);
 function startBriefing() {
   reset({ briefing: true });
   dialogue.open();

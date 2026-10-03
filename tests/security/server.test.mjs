@@ -12,6 +12,7 @@ before(async () => {
   await mkdir(root);
   await writeFile(join(root, 'index.html'), '<h1>game</h1>');
   await writeFile(join(root, 'app.js'), 'export {};');
+  await writeFile(join(root, 'ren.png'), new Uint8Array([137, 80, 78, 71]));
   await writeFile(join(root, 'engine.wasm'), new Uint8Array([0, 97, 115, 109]));
   await writeFile(join(dir, 'secret.js'), 'PRIVATE');
   await symlink(join(dir, 'secret.js'), join(root, 'escape.js'));
@@ -34,11 +35,12 @@ function request(path, method = 'GET') {
     req.end();
   });
 }
-test('serves HTML, JavaScript, WASM and HEAD with correct content types', async () => {
+test('serves HTML, JavaScript, WASM, PNG and HEAD with correct content types', async () => {
   for (const [path, type] of [
     ['/', 'text/html'],
     ['/app.js?x=1', 'text/javascript'],
     ['/engine.wasm', 'application/wasm'],
+    ['/ren.png', 'image/png'],
   ]) {
     const r = await request(path);
     assert.equal(r.status, 200);

@@ -1,6 +1,8 @@
 import js from '@eslint/js';
+import css from '@eslint/css';
 import globals from 'globals';
 import tsParser from '@typescript-eslint/parser';
+const cssClassNamePattern = /^[a-z][a-z0-9-]*$/;
 export default [
   {
     ignores: [
@@ -11,7 +13,38 @@ export default [
       'playwright-report/**',
     ],
   },
-  js.configs.recommended,
+  { ...js.configs.recommended, files: ['**/*.{js,mjs,ts}'] },
+  {
+    files: ['public/**/*.css'],
+    language: 'css/css',
+    plugins: {
+      css,
+      'project-css': {
+        rules: {
+          'class-name-pattern': {
+            meta: {
+              type: 'suggestion',
+              docs: { description: 'Require lowercase kebab-case CSS class names' },
+              schema: [],
+            },
+            create(context) {
+              return {
+                ClassSelector(node) {
+                  if (!cssClassNamePattern.test(node.name)) {
+                    context.report({ node, message: 'Use a lowercase kebab-case class name.' });
+                  }
+                },
+              };
+            },
+          },
+        },
+      },
+    },
+    rules: {
+      ...css.configs.recommended.rules,
+      'project-css/class-name-pattern': 'error',
+    },
+  },
   {
     files: ['**/*.{js,mjs}'],
     languageOptions: { globals: globals.node },

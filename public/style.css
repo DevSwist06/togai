@@ -51,6 +51,7 @@ button:hover {
 }
 
 [hidden] {
+  /* eslint-disable-next-line css/no-important -- Hidden panels must override component display rules. */
   display: none !important;
 }
 
@@ -767,11 +768,13 @@ body.playing .header-label {
 
 @media (any-pointer: coarse) {
   body {
+    /* eslint-disable-next-line css/use-baseline -- The WebGPU game targets Chromium. */
     user-select: none;
   }
 
   button {
     touch-action: manipulation;
+    /* eslint-disable-next-line css/use-baseline -- The WebGPU game targets Chromium. */
     user-select: none;
   }
 
@@ -940,14 +943,14 @@ body.playing .header-label {
 #rival-dialogue {
   position: fixed;
   inset: auto 0 max(28px, env(safe-area-inset-bottom));
-  width: min(780px, calc(100% - 36px));
+  width: min(1020px, calc(100% - 36px));
   max-height: none;
   margin: 0 auto;
   padding: 0;
   overflow: visible;
   border: 0;
   background: transparent;
-  color: #263a32;
+  color: #493b29;
 }
 
 #rival-dialogue::backdrop {
@@ -956,209 +959,82 @@ body.playing .header-label {
 
 .dialogue-box {
   position: relative;
-  padding: 24px 30px 18px;
-  border: 3px solid #d7d4bb;
-  border-radius: 26px 10px 26px 26px;
-  background: #fff9e7;
+  padding: 26px 40px 22px;
+  border: 3px solid #57432e;
+  border-radius: 34px 18px 30px 24px;
+  background:
+    radial-gradient(ellipse at 12% 0, #d4b96b33, transparent 48%),
+    radial-gradient(ellipse at 95% 100%, #c7a26040, transparent 45%),
+    repeating-linear-gradient(97deg, #ffffff0a 0 2px, #b6a37508 3px 4px), #f5ecd2;
   box-shadow:
-    0 10px 0 #162b2340,
-    0 18px 44px #091b2340;
-}
-
-.dialogue-box::before,
-.dialogue-box::after {
-  position: absolute;
-  top: -27px;
-  right: 52px;
-  width: 40px;
-  height: 28px;
-  background: #d7d4bb;
-  clip-path: polygon(100% 0, 80% 100%, 0 100%);
-  content: '';
-}
-
-.dialogue-box::after {
-  top: -20px;
-  right: 55px;
-  width: 32px;
-  height: 24px;
-  background: #fff9e7;
+    inset 0 0 0 6px #fff7df80,
+    inset 0 0 28px #b59a5c40,
+    0 4px 0 #493b2940;
 }
 
 .rival-portrait {
   position: absolute;
-  width: 190px;
-  height: 186px;
-  bottom: calc(100% - 8px);
-  right: 12px;
-  overflow: hidden;
-  filter: drop-shadow(3px 3px 0 #fff9e7);
-}
-
-.rival-face {
-  position: absolute;
-  width: 76px;
-  height: 88px;
-  left: 57px;
-  top: 24px;
-  background: #e6ad86;
-  border-radius: 20% 30% 44% 44%;
-  border: 4px solid #10201f;
-  transform: rotate(-9deg);
-}
-
-.rival-face i {
-  position: absolute;
-  width: 13px;
-  height: 6px;
-  top: 39px;
-  left: 12px;
-  border-top: 3px solid #162422;
-  background: linear-gradient(90deg, #fff9e7 40%, #162422 40% 75%, #fff9e7 75%);
-  transform: rotate(9deg);
-}
-
-.rival-face i::before {
-  position: absolute;
-  width: 18px;
-  height: 4px;
-  left: -2px;
-  top: -10px;
-  background: #162422;
-  content: '';
-  transform: rotate(9deg);
-}
-
-.rival-face i + i {
-  left: 45px;
-  transform: rotate(-12deg);
-}
-
-.rival-face i + i::before {
-  top: -15px;
-  transform: rotate(-18deg);
-}
-
-.rival-face b {
-  position: absolute;
-  width: 23px;
-  height: 8px;
-  top: 62px;
-  left: 28px;
-  background: #fff9e7;
-  border-bottom: 3px solid #803f3a;
-  border-radius: 0 0 90% 30%;
-  transform: rotate(-12deg);
-}
-
-.rival-hair {
-  position: absolute;
   z-index: 1;
-  top: 7px;
-  left: 43px;
-  width: 99px;
-  height: 60px;
-  background: #10201f;
-  clip-path: polygon(
-    0 35%,
-    14% 20%,
-    9% 8%,
-    45% 12%,
-    68% 0,
-    95% 25%,
-    100% 95%,
-    75% 50%,
-    22% 73%,
-    8% 100%
-  );
+  width: 440px;
+  height: auto;
+  bottom: calc(100% - 66px);
+  right: 8px;
+  pointer-events: none;
 }
 
-.rival-jacket {
-  position: absolute;
-  top: 108px;
-  width: 190px;
-  height: 100px;
-  border: 5px solid #10201f;
-  border-radius: 65px 65px 0 0;
-  background: linear-gradient(90deg, #62a698 45%, #172522 45% 52%, #62a698 52%);
-}
-
-.rival-jacket span {
-  position: absolute;
-  top: 15px;
-  right: 31px;
-  color: #10201f;
-  font-size: 19px;
-  font-weight: 900;
-}
-
-.rival-arms::before,
-.rival-arms::after {
-  position: absolute;
-  width: 128px;
-  height: 28px;
-  top: 40px;
-  left: 8px;
-  border: 4px solid #10201f;
-  border-radius: 18px;
-  background: linear-gradient(90deg, #78b3a6 78%, #e6ad86 78%);
-  transform: rotate(12deg);
-  content: '';
-}
-
-.rival-arms::after {
-  left: 38px;
-  top: 44px;
-  background: linear-gradient(90deg, #e6ad86 20%, #62a698 20%);
-  transform: rotate(-13deg);
-}
-
-.speaking .rival-face b {
-  animation: rival-talk 0.18s steps(2) infinite;
-}
-
-@keyframes rival-talk {
-  to {
-    height: 11px;
-  }
-}
-
-.dialogue-heading,
-.dialogue-actions {
+.dialogue-heading {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
 }
 
-.dialogue-heading h2 {
-  margin: 0;
-  color: #285b4d;
-  font-size: 23px;
+.dialogue-actions {
+  display: flex;
+  justify-content: flex-end;
 }
 
-.dialogue-heading h2 span,
-#dialogue-page,
-.dialogue-hint {
-  font: 10px monospace;
-  letter-spacing: 1px;
-  color: #526456;
+.dialogue-heading h2 {
+  margin: 0;
+  color: #30291f;
+  font-family: Impact, 'Arial Narrow', sans-serif;
+  font-size: 38px;
+  font-style: italic;
+  letter-spacing: -1px;
 }
 
 .dialogue-heading h2 span {
-  margin-left: 12px;
+  margin-left: 14px;
+  color: #94602d;
+  font-size: 20px;
+  letter-spacing: -0.5px;
+  text-shadow: 1px 1px #e2c795;
+}
+
+#dialogue-page,
+.dialogue-hint {
+  font: 11px monospace;
+  letter-spacing: 1px;
+  color: #594d37;
+}
+
+#dialogue-page {
+  align-self: flex-end;
+  padding-bottom: 4px;
 }
 
 #dialogue-copy {
-  min-height: 94px;
-  margin: 16px 0;
-  color: #263a32;
-  font-size: 19px;
+  min-height: 106px;
+  margin: 22px 0 18px;
+  color: #493b29;
+  font-size: 22px;
   line-height: 1.6;
 }
 
 #dialogue-copy strong {
   font-weight: 800;
+  font-style: italic;
+  text-shadow: 0.5px 1px #60372c30;
 }
 
 #dialogue-copy .danger {
@@ -1169,21 +1045,41 @@ body.playing .header-label {
   color: #23724f;
 }
 
-.dialogue-actions .quiet {
-  color: #526456;
+.dialogue-actions .primary {
+  min-width: 210px;
+  min-height: 66px;
+  padding: 14px 24px;
+  border: 3px solid #483f2c;
+  border-radius: 20px 15px 19px 14px;
+  background: linear-gradient(170deg, #a2c8b6, #70a99f 65%, #61908a);
+  box-shadow:
+    inset 0 0 0 5px #c5dbbd66,
+    inset 0 -5px 0 #335d5555,
+    0 4px 0 #483f2c;
+  color: #263c33;
+  font-size: 20px;
+  font-style: italic;
 }
 
-.dialogue-actions .primary {
-  min-width: 155px;
-  padding: 14px 20px;
-  border-radius: 12px;
-  background: #285b4d;
-  color: #fff9e7;
+.dialogue-actions .primary:hover {
+  background: linear-gradient(170deg, #b4d4c2, #81b6a9 65%, #70a198);
 }
 
 .dialogue-hint {
-  margin-top: 14px;
-  font-size: 9px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  font-size: 10px;
+}
+
+.dialogue-hint kbd {
+  padding: 4px 10px;
+  border: 2px solid #69543a;
+  border-radius: 6px;
+  background: #fff7df;
+  box-shadow: 0 2px 0 #69543a;
+  color: inherit;
 }
 
 @media (width <= 600px) {
@@ -1192,58 +1088,82 @@ body.playing .header-label {
   }
 
   .rival-portrait {
-    right: 6px;
-    transform: scale(0.82);
-    transform-origin: bottom right;
+    width: 235px;
+    right: 0;
+    bottom: calc(100% - 35px);
   }
 
   .dialogue-box {
-    padding: 18px 19px 16px;
+    padding: 28px 19px 18px;
+    border-radius: 24px 15px 24px 20px;
+  }
+
+  .dialogue-heading h2 {
+    font-size: 30px;
   }
 
   .dialogue-heading h2 span {
     display: block;
-    margin: 5px 0 0;
+    margin: 3px 0 0;
+    font-size: 16px;
   }
 
   #dialogue-copy {
     min-height: 164px;
+    margin-top: 18px;
     font-size: 16px;
   }
 
+  .dialogue-actions .primary {
+    min-width: 150px;
+    min-height: 56px;
+    padding: 12px;
+    font-size: 17px;
+  }
+
   .dialogue-hint {
+    gap: 6px;
     font-size: 8px;
     letter-spacing: 0;
+  }
+
+  .dialogue-hint kbd {
+    padding: 4px 6px;
   }
 }
 
 @media (height <= 500px) {
   #rival-dialogue {
     bottom: 12px;
+    width: min(780px, calc(100% - 36px));
   }
 
   .rival-portrait {
-    transform: scale(0.62);
-    transform-origin: bottom right;
+    width: 200px;
+    bottom: calc(100% - 30px);
   }
 
   .dialogue-box {
     padding: 12px 22px;
   }
 
+  .dialogue-heading h2 {
+    font-size: 28px;
+  }
+
   #dialogue-copy {
     min-height: 56px;
-    margin: 8px 0;
+    margin: 10px 0;
     font-size: 16px;
+  }
+
+  .dialogue-actions .primary {
+    min-height: 46px;
+    padding: 8px 20px;
+    font-size: 17px;
   }
 
   .dialogue-hint {
     margin-top: 8px;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .speaking .rival-face b {
-    animation: none;
   }
 }

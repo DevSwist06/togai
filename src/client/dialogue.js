@@ -22,11 +22,10 @@ const pages = [
 export class RivalVoice {
   constructor(createContext = () => new AudioContext()) {
     this.createContext = createContext;
-    this.enabled = true;
     this.syllable = 0;
   }
   unlock() {
-    if (!this.enabled || this.failed) return;
+    if (this.failed) return;
     try {
       if (!this.context) {
         this.context = this.createContext();
@@ -48,7 +47,7 @@ export class RivalVoice {
     this.stop();
   }
   speak(letter) {
-    if (!this.enabled || this.failed || !this.context || !/[a-z0-9]/i.test(letter)) return;
+    if (this.failed || !this.context || !/[a-z0-9]/i.test(letter)) return;
     const time = this.context.currentTime;
     const pitch = [420, 560, 470, 630, 510, 390][this.syllable++ % 6];
     this.oscillator.frequency.setValueAtTime(pitch, time);
@@ -65,11 +64,10 @@ export class RivalVoice {
   }
 }
 
-export function createDialogue(onFinish, onCancel) {
+export function createDialogue(onFinish, onCancel, isSoundOn) {
   const dialog = document.getElementById('rival-dialogue');
   const copy = document.getElementById('dialogue-copy');
   const next = document.getElementById('dialogue-next');
-  const voiceButton = document.getElementById('dialogue-voice');
   const voice = new RivalVoice();
   let page = 0;
   let cursor = 0;
@@ -119,12 +117,11 @@ export function createDialogue(onFinish, onCancel) {
         return;
       }
       cursor = Math.min(cursor + 2, fullText.length);
-      voice.speak(fullText[cursor - 1]);
+      if (isSoundOn()) voice.speak(fullText[cursor - 1]);
       reveal();
     }, 60);
   }
   function advance() {
-    voice.unlock();
     if (cursor < fullText.length) {
       cursor = fullText.length;
       reveal();
@@ -138,16 +135,9 @@ export function createDialogue(onFinish, onCancel) {
     }
   }
   next.onclick = advance;
-  voiceButton.onclick = () => {
-    voice.enabled = !voice.enabled;
-    voiceButton.textContent = voice.enabled ? 'VOICE ON ♪' : 'VOICE OFF';
-    voiceButton.setAttribute('aria-pressed', String(voice.enabled));
-    if (voice.enabled) voice.unlock();
-    else voice.stop();
-  };
   dialog.addEventListener('keydown', (event) => {
     event.stopPropagation();
-    if ((event.code === 'Enter' || event.code === 'Space') && event.target !== voiceButton) {
+    if (event.code === 'Enter' || event.code === 'Space') {
       event.preventDefault();
       if (!event.repeat) advance();
     }
@@ -166,7 +156,7 @@ export function createDialogue(onFinish, onCancel) {
   return {
     open() {
       page = 0;
-      voice.unlock();
+      if (isSoundOn()) voice.unlock();
       dialog.showModal();
       showPage();
       next.focus();
