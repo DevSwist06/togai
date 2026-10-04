@@ -3,6 +3,18 @@ import assert from 'node:assert/strict';
 import { DrivingEffects } from '../../src/client/effects.js';
 import { updateCamera } from '../../src/client/camera.js';
 import { Mesh } from '../../src/client/renderer.js';
+test('player car has no trailing triangle', () => {
+  const fx = new DrivingEffects(),
+    mesh = new Mesh(),
+    s = new Float64Array(20);
+  s[10] = 30;
+  fx.draw(0, 'paused', s, mesh);
+  for (let i = 0; i < mesh.data.length; i += 6) {
+    const x = mesh.data[i],
+      y = mesh.data[i + 1];
+    assert(!(Math.abs(x) < 2 && y > 3.6 && y < 6), 'no shape trails the player car');
+  }
+});
 test('drifting creates finite smoke/trails with bounded storage and reset clears effects', () => {
   const fx = new DrivingEffects(),
     mesh = new Mesh(),

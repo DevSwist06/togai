@@ -58,10 +58,6 @@ export class DrivingEffects {
     if (marks.length > 800) marks.splice(0, marks.length - 800);
     drawCar(dynamic, s[10], s[11], s[12], color('b9d2cd'), s[15]);
     drawCar(dynamic, s[0], s[1], s[2], color('f88456'), s[5]);
-    // Tiny player marker above the car: instantly distinguish the two drivers.
-    const x = s[0] - Math.sin(s[2]) * 5,
-      y = s[1] + Math.cos(s[2]) * 5;
-    dynamic.disc(x, y, 0.48, color('ffbd84'), 3);
     for (let i = smoke.length - 1; i >= 0; i--) {
       const p = smoke[i];
       p.life -= dt;

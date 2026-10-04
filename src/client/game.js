@@ -66,7 +66,7 @@ let wasm,
   fpsTime = 0;
 const effects = new DrivingEffects();
 let audio = null,
-  soundOn = false;
+  soundOn = true;
 function initAudio() {
   if (audio) return;
   const context = new AudioContext(),
@@ -84,11 +84,15 @@ function initAudio() {
   audio = { context, gain, osc, filter };
 }
 function setSound(on) {
-  soundOn = on;
   if (on) {
-    initAudio();
-    audio.context.resume();
+    try {
+      initAudio();
+      audio.context.resume().catch(() => setSound(false));
+    } catch {
+      on = false;
+    }
   }
+  soundOn = on;
   $('sound').innerHTML = `SOUND ${on ? 'ON' : 'OFF'} <span>↗</span>`;
   $('sound').setAttribute('aria-pressed', String(on));
 }
@@ -144,6 +148,7 @@ const dialogue = createDialogue(
   () => soundOn,
 );
 function startBriefing() {
+  setSound(soundOn);
   reset({ briefing: true });
   dialogue.open();
 }
@@ -270,7 +275,7 @@ function drawMap(canvas, live = false) {
     h = canvas.height;
   ctx.clearRect(0, 0, w, h);
   const scale = (h - 28) / -track.at(-1).y;
-  const project = (p) => [w / 2 + (p.x - 60) * scale, 13 + -p.y * scale];
+  const project = (p) => [w / 2 + (p.x - 60) * scale, h - 13 + p.y * scale];
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
   ctx.beginPath();

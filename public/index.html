@@ -35,16 +35,16 @@
           id="sound"
           class="quiet"
           aria-label="Toggle sound"
-          aria-pressed="false"
+          aria-pressed="true"
         >
-          SOUND OFF <span>↗</span>
+          SOUND ON <span>↗</span>
         </button>
         <div class="hint">NO SIGN-UP. JUST DRIVE.</div>
       </div>
       <aside class="brief">
         <div class="eyebrow">01 / THE COURSE</div>
         <h2>KASUMI PASS<span>霞峠</span></h2>
-        <div class="tags"><span>DOWNHILL</span><span>OVERTAKE · AI</span></div>
+        <div class="tags"><span>DOWNHILL</span><span>OVERTAKE</span></div>
         <canvas
           role="img"
           id="preview-map"
@@ -65,7 +65,6 @@
         <div id="touch-hint" class="touch-hint" hidden>
           DRAG THE JOYSTICK TO DRIVE. DOWN CORNERS DRIFT.
         </div>
-        <p>A SMALL EXPERIMENT IN GOING SIDEWAYS.</p>
       </div>
     </main>
     <dialog id="rival-dialogue" aria-labelledby="rival-name" aria-describedby="dialogue-copy">
@@ -77,15 +76,11 @@
         alt="Ren, a blond racer in a blue jacket, leans over the dialogue box with both hands on its edge"
       />
       <div class="dialogue-box">
-        <div class="dialogue-heading">
-          <h2 id="rival-name">REN <span>LOCAL HOTSHOT</span></h2>
-          <span id="dialogue-page"></span>
-        </div>
+        <h2 id="rival-name">REN</h2>
         <p id="dialogue-copy" aria-live="polite" aria-atomic="true"></p>
         <div class="dialogue-actions">
           <button type="button" id="dialogue-next" class="primary">SHOW TEXT ▸</button>
         </div>
-        <div class="dialogue-hint">ENTER <kbd>SPACE TO CONTINUE</kbd> ESC TO RETURN</div>
       </div>
     </dialog>
     <section id="hud" hidden>

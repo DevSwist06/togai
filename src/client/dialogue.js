@@ -1,13 +1,10 @@
 const pages = [
   [
-    ['First run, rookie? Figures. I’m Ren. Try to keep up: '],
+    ['First run, rookie? I’m Ren. Remember: '],
     ['don’t touch the road borders.', 'danger'],
-    [' One scrape and your run is over. Let’s see if you can handle the first bend.'],
-  ],
-  [
-    ['And a little advice, rookie: '],
+    [' One scrape and your run is over. And '],
     ['don’t hit my car.', 'danger'],
-    [' Contact ends your run instantly. This paint job costs more than your driving lessons.'],
+    [' Contact ends your run too.'],
   ],
   [
     ['Think you can beat me? Get '],
@@ -103,7 +100,6 @@ export function createDialogue(onFinish, onCancel, isSoundOn) {
     });
     fullText = pages[page].map(([text]) => text).join('');
     copy.setAttribute('aria-label', fullText);
-    document.getElementById('dialogue-page').textContent = `RULE ${page + 1} / ${pages.length}`;
     next.textContent = 'SHOW TEXT ▸';
     if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
       cursor = fullText.length;

@@ -6,10 +6,10 @@ async function ready(page) {
   await expect(page.locator('#error')).toBeHidden();
 }
 async function finishBriefing(page) {
-  for (let rule = 1; rule <= 3; rule++) {
-    await expect(page.locator('#dialogue-page')).toHaveText(`RULE ${rule} / 3`);
+  for (const rule of ['don’t hit my car.', 'fully ahead and stay clear for 5 seconds.']) {
     const next = page.locator('#dialogue-next');
     if ((await next.textContent()).includes('SHOW TEXT')) await next.click();
+    await expect(page.locator('#dialogue-copy')).toContainText(rule);
     await next.click();
   }
   await expect(page.locator('#rival-dialogue')).not.toBeVisible();
@@ -31,6 +31,8 @@ test('real WebGPU boots without console errors and renders nonempty scene and ma
     if (m.type() === 'error') errors.push(m.text());
   });
   await ready(page);
+  await expect(page.locator('#sound')).toContainText('SOUND ON');
+  await expect(page.locator('#sound')).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByText('ENGINE READY')).toHaveCount(0);
   await expect(page.locator('#drift')).toHaveCount(0);
   await expect(page.locator('#performance')).toContainText('FPS');
@@ -50,7 +52,51 @@ test('real WebGPU boots without console errors and renders nonempty scene and ma
   await page.setViewportSize({ width: 800, height: 600 });
   await expect(page.locator('#start')).toBeInViewport();
   await page.screenshot({ path: test.info().outputPath('compact.png') });
+  await page.locator('#start').click();
+  await finishBriefing(page);
+  await expect(page.locator('#countdown')).toHaveText('3');
+  await expect(page.locator('#countdown')).toBeHidden({ timeout: 12_000 });
+  await page.screenshot({ path: test.info().outputPath('cars-compact.png') });
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.screenshot({ path: test.info().outputPath('cars-desktop.png') });
   expect(errors).toEqual([]);
+});
+
+test('course preview and live map place the start below the finish', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.__courseLabels = {};
+    const fillText = CanvasRenderingContext2D.prototype.fillText;
+    CanvasRenderingContext2D.prototype.fillText = function (label, x, y, ...args) {
+      if (this.canvas.id === 'preview-map' && (label === 'START' || label === 'FINISH')) {
+        window.__courseLabels[label] = y;
+      }
+      return fillText.call(this, label, x, y, ...args);
+    };
+  });
+  await ready(page);
+  const labels = await page.evaluate(() => window.__courseLabels);
+  expect(labels.START).toBeGreaterThan(labels.FINISH);
+  await page.screenshot({ path: test.info().outputPath('home-map-desktop.png') });
+  await page.setViewportSize({ width: 800, height: 600 });
+  await page.screenshot({ path: test.info().outputPath('home-map-compact.png') });
+  await page.locator('#start').click();
+  await finishBriefing(page);
+  await expect
+    .poll(() =>
+      page.locator('#minimap').evaluate((canvas) => {
+        const { width, height } = canvas;
+        const pixels = canvas.getContext('2d').getImageData(0, 0, width, height).data;
+        for (let y = 0; y < height; y++) {
+          for (let x = 0; x < width; x++) {
+            const i = (y * width + x) * 4;
+            if (pixels[i] === 248 && pixels[i + 1] === 132 && pixels[i + 2] === 86) return y;
+          }
+        }
+        return -1;
+      }),
+    )
+    .toBeGreaterThan(80);
+  await page.screenshot({ path: test.info().outputPath('course-map.png') });
 });
 
 test('keyboard acceleration, steering, handbrake, brake, HUD and restart', async ({ page }) => {
@@ -192,9 +238,9 @@ test('countdown/race pause, resume, focus loss and audio toggle', async ({ page 
   await page.locator('#resume').click();
   await expect(page.locator('#countdown')).toBeHidden({ timeout: 12_000 });
   await page.keyboard.press('m');
-  await expect(page.locator('#sound')).toContainText('SOUND ON');
-  await page.keyboard.press('m');
   await expect(page.locator('#sound')).toContainText('SOUND OFF');
+  await page.keyboard.press('m');
+  await expect(page.locator('#sound')).toContainText('SOUND ON');
   await page.keyboard.press('Escape');
   const time = await page.locator('#timer').textContent();
   await page.waitForTimeout(200);
@@ -300,7 +346,6 @@ test('audio graph responds to driving and mutes when paused', async ({ page }) =
     };
   });
   await start(page);
-  await page.keyboard.press('m');
   await expect.poll(() => page.evaluate(() => window.__audioValues.at(-1))).toBeGreaterThan(0);
   await page.keyboard.press('Escape');
   await expect.poll(() => page.evaluate(() => window.__audioValues.at(-1))).toBe(0);
@@ -358,10 +403,19 @@ test('rival briefing highlights rules, holds the race, supports mute, cancel and
   expect(await page.evaluate(() => window.__briefingSnapshot())).toEqual(courseBefore);
   await expect(page.locator('#timer')).toHaveText('00:00.000');
   await page.keyboard.press('Space');
-  await expect(page.locator('#dialogue-copy strong')).toHaveText('don’t touch the road borders.');
-  await expect(page.locator('#dialogue-copy strong')).toHaveCSS('font-weight', '800');
-  await expect(page.locator('#dialogue-copy strong')).toHaveCSS('color', 'rgb(179, 60, 35)');
+  await expect(page.locator('#dialogue-copy strong')).toHaveText([
+    'don’t touch the road borders.',
+    'don’t hit my car.',
+  ]);
+  await expect(page.locator('#dialogue-copy strong').first()).toHaveCSS('font-weight', '800');
+  await expect(page.locator('#dialogue-copy strong').first()).toHaveCSS(
+    'color',
+    'rgb(179, 60, 35)',
+  );
   await expect(page.locator('#dialogue-copy')).toContainText('First run, rookie?');
+  await expect(page.locator('#rival-name')).toHaveText('REN');
+  await expect(page.locator('#dialogue-page')).toHaveCount(0);
+  await expect(page.locator('.dialogue-hint')).toHaveCount(0);
   const bubble = await page.locator('.dialogue-box').boundingBox();
   const portrait = await page.locator('.rival-portrait').boundingBox();
   expect(portrait.x + portrait.width / 2).toBeGreaterThan(bubble.x + bubble.width / 2);
@@ -373,6 +427,9 @@ test('rival briefing highlights rules, holds the race, supports mute, cancel and
   ).toBeGreaterThan(0);
   await expect(page.locator('.dialogue-box')).toHaveCSS('background-color', 'rgb(245, 236, 210)');
   await expect(page.locator('#dialogue-next')).toHaveCSS('color', 'rgb(38, 60, 51)');
+  const nextButton = await page.locator('#dialogue-next').boundingBox();
+  expect(nextButton.width).toBeLessThan(210);
+  expect(nextButton.height).toBeLessThan(66);
   expect(portrait.y).toBeLessThan(bubble.y);
   await page.screenshot({ path: test.info().outputPath('rival-desktop.png') });
   await page.setViewportSize({ width: 390, height: 844 });
@@ -381,13 +438,11 @@ test('rival briefing highlights rules, holds the race, supports mute, cancel and
   await expect(page.locator('#dialogue-voice')).toHaveCount(0);
   await page.locator('#dialogue-next').click();
   await page.keyboard.press('Enter');
-  await expect(page.locator('#dialogue-copy strong')).toHaveText('don’t hit my car.');
-  await page.keyboard.press('Enter');
-  await page.keyboard.press('Space');
   await expect(page.locator('#dialogue-copy')).toContainText(
     'fully ahead and stay clear for 5 seconds.',
   );
   await expect(page.locator('#dialogue-copy')).toContainText('before I reach the finish.');
+  await expect(page.locator('#dialogue-next')).toHaveText('LET’S RACE ↗');
   await page.setViewportSize({ width: 844, height: 390 });
   await expect(page.locator('#dialogue-next')).toBeInViewport();
   await expect(page.locator('.rival-portrait')).toBeInViewport();
@@ -422,13 +477,16 @@ test('briefing works with reduced motion and unavailable audio', async ({ page }
 
 test('briefing text reveals automatically with menu sound off', async ({ page }) => {
   await ready(page);
+  await page.locator('#sound').click();
   await expect(page.locator('#sound')).toHaveAttribute('aria-pressed', 'false');
   await page.locator('#start').click();
   await expect(page.locator('#dialogue-next')).toHaveText('NEXT ▸', { timeout: 10_000 });
   await expect(page.locator('#dialogue-copy')).toContainText('One scrape and your run is over.');
 });
 
-test('menu sound enables rival speech and speech stops when dialogue closes', async ({ page }) => {
+test('default menu sound enables rival speech and speech stops when dialogue closes', async ({
+  page,
+}) => {
   await page.addInitScript(() => {
     const NativeAudio = window.AudioContext;
     window.__voicePitches = [];
@@ -455,7 +513,7 @@ test('menu sound enables rival speech and speech stops when dialogue closes', as
     };
   });
   await ready(page);
-  await page.locator('#sound').click();
+  await expect(page.locator('#sound')).toHaveAttribute('aria-pressed', 'true');
   await page.locator('#start').click();
   await expect
     .poll(() => page.evaluate(() => new Set(window.__voicePitches).size))
