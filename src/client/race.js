@@ -79,7 +79,7 @@ export class Race {
       this.rivalFinish === null ? ai.throttle : 0,
       ai.steer,
       this.rivalFinish === null ? ai.brake : 1,
-      0,
+      this.rivalFinish === null ? ai.handbrake : 0,
       STEP,
     );
     const rivalCollision = this.wasm.resolveCars();

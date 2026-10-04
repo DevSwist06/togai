@@ -87,7 +87,7 @@ export function aiInput(s) {
     p = s[18];
   const target = atDistance(p + 13 + speed * 0.63);
   // The AI holds an outside line, leaving a safe lane for a clean pass.
-  const offset = 3.8;
+  const offset = 6.5;
   const desired = Math.atan2(
     target.x + target.nx * offset - s[10],
     -(target.y + target.ny * offset - s[11]),
@@ -96,10 +96,11 @@ export function aiInput(s) {
   const near = atDistance(p + 12),
     far = atDistance(p + 54);
   const bend = Math.abs(Math.atan2(Math.sin(far.a - near.a), Math.cos(far.a - near.a)));
-  const targetSpeed = Math.max(19, 39 - bend * 17);
+  const targetSpeed = Math.max(24, 54 - bend * 30);
   return {
     steer: Math.max(-1, Math.min(1, delta * 2.7)),
     throttle: speed < targetSpeed ? 1 : 0,
     brake: speed > targetSpeed + 2 ? 0.45 : 0,
+    handbrake: bend > 0.35 && Math.abs(delta) > 0.08 && speed > 24 ? 1 : 0,
   };
 }

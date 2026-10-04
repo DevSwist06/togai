@@ -36,19 +36,28 @@ test('forgiving handbrake keeps a controllable drift compared with normal grip',
     drift = slip(1);
   assert(drift > grip * 1.15);
 });
-test('AI completes the course in 50–100 seconds without persistent barrier contact', async () => {
+test('powered rival drifts through bends and finishes quickly without barrier contact', async () => {
   const { wasm: w, state: s } = await physics();
   let time = 0,
-    hits = 0;
+    hits = 0,
+    maxSpeed = 0,
+    driftTime = 0,
+    handbrakeTime = 0;
   while (s[18] < length - 14 && time < 120) {
     const a = aiInput(s);
-    w.step(1, a.throttle, a.steer, a.brake, 0, STEP);
+    w.step(1, a.throttle, a.steer, a.brake, a.handbrake, STEP);
     if (s[19] > 0.99) hits++;
+    maxSpeed = Math.max(maxSpeed, s[16]);
+    if (s[16] > 8 && Math.abs(s[17]) > 0.085) driftTime += STEP;
+    if (a.handbrake) handbrakeTime += STEP;
     time += STEP;
     assert([...s].every(Number.isFinite));
   }
-  assert(time > 50 && time < 100, `AI finish: ${time}s`);
-  assert(hits < 120, `Collision ticks: ${hits}`);
+  assert(time > 50 && time < 55, `AI finish: ${time}s`);
+  assert(maxSpeed > 49, `AI top speed: ${maxSpeed}m/s`);
+  assert(driftTime > 25, `AI drift time: ${driftTime}s`);
+  assert(handbrakeTime > 20, `AI handbrake time: ${handbrakeTime}s`);
+  assert.equal(hits, 0);
 });
 test('5,000 steps of aggressive driving stay finite and inside guardrails', async () => {
   const { wasm: w, state: s } = await physics();

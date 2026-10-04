@@ -70,8 +70,13 @@ export function step(
   let lateral = vx * rx + vy * ry;
   const grip = handbrake > 0.0 ? 2.3 : 5.0;
   lateral *= Math.exp(-grip * dt);
+  const engineForce = car === 1 ? 20.0 : 13.0;
   const accel =
-    throttle * 13.0 - 0.45 - forward * Math.abs(forward) * 0.0066 - brake * 26.0 - handbrake * 1.5;
+    throttle * engineForce -
+    0.45 -
+    forward * Math.abs(forward) * 0.0066 -
+    brake * 26.0 -
+    handbrake * 1.5;
   forward = Math.max(0.0, forward + accel * dt);
   vx = fx * forward + rx * lateral;
   vy = fy * forward + ry * lateral;
