@@ -255,11 +255,9 @@ function updateHUD() {
   $('gap').textContent =
     race.rivalFinish !== null
       ? 'RIVAL ESCAPED'
-      : race.overtakeDuration > 0
-        ? `PASS CLEAR · ${(5 - race.overtakeDuration).toFixed(1)} S`
-        : gap < 3
-          ? 'SIDE BY SIDE'
-          : `${first ? 'OVERTAKING' : 'CHASING'} ${gap.toFixed(0)} M`;
+      : gap < 3
+        ? 'SIDE BY SIDE'
+        : `${first ? 'OVERTAKING' : 'CHASING'} ${gap.toFixed(0)} M`;
   const passProgress = Math.min(5, race.overtakeDuration);
   const passConfirmation = $('pass-confirmation');
   passConfirmation.hidden = passProgress <= 0;
