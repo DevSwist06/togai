@@ -1,6 +1,6 @@
 # TOGAI — downhill chase
 
-A top-down drifting proof of concept: a 1.95 km mountain pass, a fast AI rival with an 18 m head start, and instant retries. Fully overtake the rival and hold that clear pass for five seconds before it reaches the finish to win. WebGPU graphics and 120 Hz WebAssembly physics. No accounts, backend data, or external runtime assets.
+A top-down drifting proof of concept: two mountain courses, a fast AI rival with an 18 m head start, and instant retries. Fully overtake the rival and hold that clear pass for five seconds before it reaches the finish to win. WebGPU graphics and 120 Hz WebAssembly physics. No accounts, backend data, or external runtime assets.
 
 ## Setup and play
 
@@ -31,14 +31,27 @@ The browser assets intentionally use relative URLs, so the game works both at a 
 
 On a touch screen, the start button shows a finish flag. Drag the centered joystick upward to accelerate, downward to brake, or sideways to steer. Drag toward a lower corner to use the handbrake while turning. Its direction guide eases toward the car during turns, briefly retaining the previous line so steering does not snap. The pause and restart buttons remain above the game; the joystick returns to neutral when a touch is cancelled, the game pauses, or the page loses focus. Touch interaction does not select page text.
 
-Before each descent, both cars line up on the course and wait while Ren, your smug AI rival, sizes you up as a rookie. A warm parchment dialogue panel sits over the course, with a painted blond, blue-jacketed Ren leaning over its top-right edge and a compact teal advance button. The transparent artwork is bundled locally and displayed without a clipping mask. Two pages explain the rules: road borders and car contact together, then the passing goal. Click or press Enter/Space to reveal a line, then advance; the countdown starts only after the second page. Escape returns to the garage. The garage menu has one SOUND ON/OFF control for engine and dialogue audio, and sound starts ON. Reduced-motion mode shows complete lines immediately. Audio unavailability leaves the dialogue playable. Instant retries skip the briefing.
+On Kasumi Pass, both cars line up on the course and wait while Ren, your smug AI rival, sizes you up as a rookie. A warm parchment dialogue panel sits over the course, with a painted blond, blue-jacketed Ren leaning over its top-right edge and a compact teal advance button. The transparent artwork is bundled locally and displayed without a clipping mask. Two pages explain the rules: road borders and car contact together, then the passing goal. Click or press Enter/Space to reveal a line, then advance; the countdown starts only after the second page. Escape returns to the garage. The garage menu has one SOUND ON/OFF control for engine and dialogue audio, and sound starts ON. Reduced-motion mode shows complete lines immediately. Audio unavailability leaves the dialogue playable. Instant retries skip the briefing.
 
-Brake before a corner, turn in, tap the handbrake, then release it and countersteer. The forgiving handbrake keeps more speed and rotation under control. You drive the orange car, shown without a trailing marker, and begin behind the faster AI rival; get your rear axle fully past it and hold the clear pass for five seconds to win. Ren has stronger acceleration, reaches about 51 m/s on open stretches, and uses the handbrake to drift through bends. An unopposed descent takes roughly 53 seconds. The HUD shows the remaining time and progress while you hold the pass. The home course preview and live minimap place START at the bottom and FINISH at the top. Any contact with the rival or roadside causes a crash and ends the run; the rival reaching the finish also ends it. This is local 1v1 against AI, not online multiplayer. Downhill is represented visually; there is no elevation simulation.
+Brake before a corner, turn in, tap the handbrake, then release it and countersteer. The forgiving handbrake keeps more speed and rotation under control. You drive the orange car, shown without a trailing marker, and begin behind the faster AI rival; get your rear axle fully past it and hold the clear pass for five seconds to win. Ren has stronger acceleration, reaches about 51 m/s on open stretches, and uses the handbrake to drift through bends. An unopposed Kasumi descent takes roughly 53 seconds. The HUD shows the remaining time and progress while you hold the pass. The home course preview and live minimap place START at the bottom and FINISH at the top. Any contact with the rival or roadside causes a crash and ends the run; the rival reaching the finish also ends it. This is local 1v1 against AI, not online multiplayer. Downhill is represented visually; there is no elevation simulation.
+
+## Beaufort Mountain
+
+Use the **BEAUFORT MOUNTAIN ↗** button beside **01 / THE COURSE** in the garage. It cycles back to Kasumi Pass and also works on phones. Beaufort starts the countdown immediately without Ren’s introduction; retries keep the selected course.
+
+The 7.46 km snow course is nearly four times as long as Kasumi, mixing long sweeping turns with sharp switchbacks. Both cars accelerate faster and have about 40% more open-road cruising speed. Brake early for the hairpins. Snow piles cover part of the road and slow the car, but you can drive all the way through them without triggering a crash. Long blue ice patches cover only one half of the road: they retain lateral momentum, reduce turning response and give a small speed boost. Normal grip returns after leaving a patch.
+
+A solid, ice-free bridge spans a deep-blue alpine river with gently moving, curved caustic highlights generated by a procedural shader. Compact top-down snowy fir canopies, four alternating snowbank designs, long beveled glassy ice patches, roadside cabins, snow poles and bend markers line the route. Water animation freezes while paused. The chase and crash rules remain the same; the rival completes Beaufort in roughly 125 seconds in the deterministic unopposed simulation.
+
+Each map has its own configuration folder and optional scenery modules in `src/client/maps/`. Adding a new folder with `config.js` and rebuilding automatically includes it in the garage switch. See [the map authoring guide](src/client/maps/README.md).
+
+The garage leaderboard sits below each course's weather strip and shows the fastest winning time for every course. A win is timed when the five-second overtake is confirmed; crashes and losses do not set records. First-time progression and records use a one-year, first-party cookie scoped to the game path. The record belongs to this browser and is user-editable; blocked cookies keep progress for the current visit only. Ren's briefing runs once when first completed.
 
 ## Project layout
 
 ```text
 src/client/       Browser app, race lifecycle, track/AI, renderer
+src/client/maps/  Discovered course configs and map-specific scenery/animation
 src/physics/      AssemblyScript physics source
 src/server/       Restricted static server
 public/           Authored HTML and CSS
@@ -52,7 +65,7 @@ tests/security/   HTTP attack, WASM input, source policy checks
 dist/             Generated output; never commit
 ```
 
-The renderer uploads scenery once and uses two draw calls, a reusable dynamic GPU buffer, bounded translucent foreground smoke, trail, and crash-spark effects, and a 1.5 device-pixel-ratio cap. The authored road continues past both the logical start and finish along their tangent, so the shoulders, markings, and guardrails do not end abruptly in view. Smoke drifts over cars without hiding them completely. The HUD updates independently of physics. Shared WASM memory avoids state serialization. The server and browser have no runtime npm dependencies.
+The renderer uploads scenery once per course selection and uses two draw calls on Kasumi and four on Beaufort (terrain, procedural water, road/scenery, and dynamic effects), a reusable dynamic GPU buffer, bounded translucent foreground smoke, trail, and crash-spark effects, and a 1.5 device-pixel-ratio cap. The authored road continues past both the logical start and finish along their tangent, so the shoulders, markings, and guardrails do not end abruptly in view. Smoke drifts over cars without hiding them completely. The HUD updates independently of physics. Shared WASM memory avoids state serialization. The server and browser have no runtime npm dependencies.
 
 ## Quality gate
 

@@ -194,6 +194,16 @@ test.describe('phone controls', () => {
       .poll(async () => Number(await page.locator('#speed').textContent()))
       .toBeGreaterThan(20);
     await expect(joystick).toHaveClass(/active/);
+    // Exercise pause while the car is still on the opening straight. A long
+    // steering sequence can end the race before a later pause assertion.
+    await page.locator('#pause').click();
+    await expect(joystick).not.toHaveClass(/active/);
+    await expect(page.locator('#pause-panel')).toBeVisible();
+    await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await page.locator('#resume').click();
+    await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [center] });
+    await move(0, -40);
+    await expect(joystick).toHaveClass(/active/);
     const initialGuideHeading = await joystick.evaluate((element) =>
       element.style.getPropertyValue('--joystick-heading'),
     );
@@ -215,13 +225,6 @@ test.describe('phone controls', () => {
     await expect
       .poll(() => page.locator('#joystick-knob').evaluate((knob) => knob.style.transform))
       .toBe('');
-    await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [center] });
-    await move(0, -40);
-    await page.locator('#pause').click();
-    await expect(joystick).not.toHaveClass(/active/);
-    await expect(page.locator('#pause-panel')).toBeVisible();
-    await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-    await page.locator('#resume').click();
     await page.setViewportSize({ width: 844, height: 390 });
     await expect(joystick).toBeInViewport();
     await page.screenshot({ path: test.info().outputPath('phone-landscape.png') });
@@ -523,4 +526,132 @@ test('default menu sound enables rival speech and speech stops when dialogue clo
   await page.waitForTimeout(180);
   expect(await page.evaluate(() => window.__voicePitches.length)).toBe(stopped);
   expect(await page.evaluate(() => window.__voiceLevel)).toBe(0);
+});
+
+test('Beaufort switch sits beside the course label, skips Ren and survives restart and garage', async ({
+  page,
+}) => {
+  const errors = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await ready(page);
+  const toggle = page.getByRole('button', { name: 'Switch to BEAUFORT MOUNTAIN' });
+  await expect(page.locator('.course-switcher')).toContainText('01 / THE COURSE');
+  await expect(toggle).toBeInViewport();
+  await toggle.focus();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#course-name')).toHaveText('BEAUFORT MOUNTAIN');
+  await expect(page.locator('#course-length')).toHaveText('7.5');
+  await expect(page.locator('#course-hint')).toContainText('Half-road ice');
+  await page.screenshot({ path: test.info().outputPath('beaufort-home-desktop.png') });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.locator('#course-switch')).toBeInViewport();
+  await expect(page.locator('#start')).toBeInViewport();
+  await page.screenshot({ path: test.info().outputPath('beaufort-home-phone.png') });
+  await page.locator('#start').click();
+  await expect(page.locator('#rival-dialogue')).not.toBeVisible();
+  await expect(page.locator('#countdown')).toHaveText('3');
+  await expect(page.locator('#route-name')).toHaveText('BEAUFORT MOUNTAIN');
+  await page.keyboard.press('r');
+  await expect(page.locator('#timer')).toHaveText('00:00.000');
+  await expect(page.locator('#rival-dialogue')).not.toBeVisible();
+  await expect(page.locator('#countdown')).toBeHidden({ timeout: 12_000 });
+  await page.keyboard.down('w');
+  await page.keyboard.down('d');
+  await expect(page.locator('#results')).toBeVisible({ timeout: 12_000 });
+  await page.keyboard.up('w');
+  await page.keyboard.up('d');
+  await expect(page.locator('#result-course')).toContainText('BEAUFORT MOUNTAIN');
+  await page.locator('#back').click();
+  await page.getByRole('button', { name: 'Switch to KASUMI PASS' }).click();
+  await expect(page.locator('#course-name')).toHaveText('KASUMI PASS');
+  await page.locator('#start').click();
+  await expect(page.locator('#rival-dialogue')).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test('Beaufort firs, caustic river and half-road ice render on desktop and compact screens', async ({
+  page,
+}) => {
+  const errors = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  page.on('console', (message) => {
+    if (message.type() === 'error') errors.push(message.text());
+  });
+  await page.route('**/game.js', async (route) => {
+    const response = await route.fetch();
+    const source =
+      "import { atDistance as testPoint } from './track.js';\n" +
+      (await response.text()).replace(
+        'race = new Race(wasm, s);',
+        `race = new Race(wasm, s); window.__viewCourse = (d) => { const p=testPoint(d); race.phase='intro'; $('intro').hidden=true; document.body.classList.add('playing'); camera={x:p.x-30,y:p.y,zoom:105}; wasm.reset(p.x,p.y,p.a); }; window.__pauseView = () => { race.phase='race'; race.pause(); camera={x:s[0]+Math.sin(s[2])*20,y:s[1]-Math.cos(s[2])*20,zoom:83}; }; window.__sceneryTime = () => sceneryTime;`,
+      );
+    await route.fulfill({ response, body: source });
+  });
+  await ready(page);
+  await page.locator('#course-switch').click();
+  await expect(page.locator('#course-name')).toHaveText('BEAUFORT MOUNTAIN');
+  await page.evaluate(() => window.__viewCourse(215));
+  const before = await page.locator('#game').screenshot();
+  await page.waitForTimeout(250);
+  const after = await page.locator('#game').screenshot();
+  expect(before.equals(after)).toBe(false);
+  // Capture the composited WebGPU frame: copying a non-preserved GPU canvas
+  // into a 2D canvas can return transparent pixels between presentation frames.
+  const shades = await page.evaluate(async (base64) => {
+    const bytes = Uint8Array.from(atob(base64), (char) => char.charCodeAt(0));
+    const image = await createImageBitmap(new Blob([bytes], { type: 'image/png' }));
+    const snapshot = document.createElement('canvas');
+    snapshot.width = image.width;
+    snapshot.height = image.height;
+    const ctx = snapshot.getContext('2d');
+    ctx.drawImage(image, 0, 0);
+    // Sample open water to the right of the bridge, away from the banks.
+    const x = Math.round(image.width * 0.79),
+      y = Math.round(image.height * 0.51);
+    const data = ctx.getImageData(x - 24, y - 24, 48, 48).data;
+    const colors = new Set();
+    for (let i = 0; i < data.length; i += 16)
+      if (data[i + 2] > data[i] + 40) colors.add(`${data[i]},${data[i + 1]},${data[i + 2]}`);
+    const bridge = ctx.getImageData(
+      Math.round(image.width * 0.59),
+      Math.round(image.height * 0.51),
+      1,
+      1,
+    ).data;
+    image.close();
+    return { count: colors.size, bridge: Array.from(bridge) };
+  }, after.toString('base64'));
+  expect(shades.count).toBeGreaterThan(32);
+  expect(shades.bridge[0]).toBeGreaterThan(70);
+  expect(Math.abs(shades.bridge[0] - shades.bridge[2])).toBeLessThan(35);
+  await page.screenshot({ path: test.info().outputPath('beaufort-bridge-desktop.png') });
+  await page.setViewportSize({ width: 800, height: 600 });
+  await page.screenshot({ path: test.info().outputPath('beaufort-bridge-compact.png') });
+  await page.evaluate(() => window.__viewCourse(350));
+  await page.screenshot({ path: test.info().outputPath('beaufort-ice-snow.png') });
+  await page.evaluate(() => {
+    window.__viewCourse(215);
+    window.__pauseView();
+  });
+  const pausedTime = await page.evaluate(() => window.__sceneryTime());
+  await page.waitForTimeout(200);
+  expect(await page.evaluate(() => window.__sceneryTime())).toBe(pausedTime);
+  expect(errors).toEqual([]);
+});
+
+test('a failed map water shader shows recovery instead of leaving the garage loading', async ({
+  page,
+}) => {
+  await page.route('**/maps/beaufort/water.js', (route) =>
+    route.fulfill({
+      contentType: 'text/javascript',
+      body: "export const waterFragment = 'invalid shader code';",
+    }),
+  );
+  await ready(page);
+  await page.locator('#course-switch').click();
+  await expect(page.locator('#error')).toBeVisible();
+  await expect(page.locator('#error-message')).not.toBeEmpty();
+  await expect(page.locator('#retry')).toBeVisible();
+  await expect(page.locator('#start')).toBeDisabled();
 });

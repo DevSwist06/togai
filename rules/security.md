@@ -1,14 +1,19 @@
 # Security practices
 
-The current threat model is a local static game with no accounts, backend data, secrets, or multiplayer. The main boundaries are HTTP file access, executable browser content, the WASM API, and development dependencies.
+The current threat model is a local static game with no accounts, backend data, secrets, or multiplayer. The main boundaries are HTTP file access, executable browser content, the WASM API, the browser's persisted progress cookie, and development dependencies.
 
 - Bind the server to loopback. Serve only built, allowlisted asset types. Check decoded paths and real paths to block traversal, hidden files, and symlink escapes.
 - Reject non-read methods and malformed requests. Return generic errors without filesystem paths or stack traces. Set timeouts and a bounded header size.
 - Maintain restrictive CSP, no MIME sniffing, no framing, no referrer, and disabled camera/microphone/geolocation. Permit only `wasm-unsafe-eval` for compiled WASM; never add general `unsafe-eval` or inline scripts.
 - Use `textContent` for variable/untrusted content. Existing HTML templates must remain application-owned fixed markup. Never insert user input into HTML.
+- Treat the progress cookie as untrusted input: cap its encoded size, require a known schema version and boolean intro state, allow only authored course IDs and integer winning times between 5 seconds and 1 hour. Render records with `textContent`; discard malformed values. Store no identity or secrets. Use a host-only, directory-scoped, one-year cookie with `SameSite=Lax` and `Secure` on HTTPS. The static server does not consume scores. Browser scripts must access this cookie, so it cannot be `HttpOnly`. Client records are editable and are never authoritative competitive scores. Blocked storage keeps only in-memory progress and reports that limitation.
 - Validate WASM index bounds and finite inputs before memory access. Keep memory and visual effects bounded.
 - Keep secrets out of the repository and logs. Environment files are ignored; policy checks scan source for common credential signatures. These checks are defense in depth, not a complete secret detector.
 - Pin dependencies, use `npm ci` in the local pre-commit gate, and audit all dependencies including development tools. Any audit finding or registry failure blocks the local gate. Do not auto-run `npm audit fix --force`.
 - Do not skip a security check to ship. Record the attack regression with every security fix.
 
 Before adding hosting, networking, user input, persistence, or multiplayer, update this threat model and review the new trust boundaries. Local checks do not replace a production security review.
+
+Course configuration is trusted, bundled application code; there is no map upload or remote configuration endpoint. New WASM `setSurface` inputs validate sequential bounded indices, finite coordinates/heading, supported surface kinds and positive bounded surface dimensions before writing fixed arrays. `setCourseSpeed` accepts finite values from 1 to 2. Invalid calls leave existing state/configuration intact. Regression tests compare motion against an untouched module after rejected inputs. The generated map catalog restricts folder names and only imports authored `config.js` files; no new runtime network or dependency boundary is introduced.
+
+Beaufort water is generated from bounded local geometry and procedural WGSL, with no image requests or new dependencies. Invalid shader compilation uses the existing recovery screen.

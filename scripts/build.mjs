@@ -1,3 +1,4 @@
+import { writeMapCatalog } from './map-catalog.mjs';
 import { cp, mkdir, rm } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -7,6 +8,7 @@ await mkdir(new URL('../dist/', import.meta.url), { recursive: true });
 await cp(new URL('../public/', import.meta.url), new URL('../dist/', import.meta.url), {
   recursive: true,
 });
+await writeMapCatalog(new URL('../src/client/maps/', import.meta.url));
 await cp(new URL('../src/client/', import.meta.url), new URL('../dist/', import.meta.url), {
   recursive: true,
 });

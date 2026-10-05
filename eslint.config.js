@@ -59,7 +59,9 @@ export default [
   },
   {
     files: ['src/client/**/*.js', 'tests/e2e/**/*.js'],
-    languageOptions: { globals: { ...globals.browser, GPUBufferUsage: 'readonly' } },
+    languageOptions: {
+      globals: { ...globals.browser, GPUBufferUsage: 'readonly' },
+    },
   },
   {
     files: ['src/physics/**/*.ts'],

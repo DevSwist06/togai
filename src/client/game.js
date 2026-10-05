@@ -1,11 +1,13 @@
 import { createDialogue } from './dialogue.js';
-import { track, length } from './track.js';
+import { COURSES, createProgression } from './progression.js';
+import { track, length, course, courses, selectCourse, loadCourse } from './track.js';
 import { Race, STEP as step, readInput, formatTime as fmt } from './race.js';
 import { createRenderer, Mesh } from './renderer.js';
 import { DrivingEffects } from './effects.js';
 import { updateCamera } from './camera.js';
 import { followHeading, headingAlignedInput, joystickInput } from './joystick.js';
 const $ = (id) => document.getElementById(id);
+const progression = createProgression(document, window.location);
 $('touch-hint').hidden = !window.matchMedia('(pointer: coarse)').matches || window.innerWidth > 600;
 const keys = new Set();
 const joystick = $('joystick');
@@ -55,7 +57,8 @@ document.addEventListener('selectstart', (event) => {
   if (matchMedia('(any-pointer: coarse)').matches) event.preventDefault();
 });
 let race;
-let camera = { x: 66, y: -155, zoom: 130 };
+let camera = { ...course.preview };
+let sceneryTime = 0;
 let wasm,
   s,
   renderer,
@@ -139,6 +142,7 @@ function pause() {
 }
 const dialogue = createDialogue(
   () => {
+    progression.completeIntro();
     race.startCountdown();
     keys.clear();
     $('hud').hidden = false;
@@ -149,10 +153,50 @@ const dialogue = createDialogue(
 );
 function startBriefing() {
   setSound(soundOn);
-  reset({ briefing: true });
-  dialogue.open();
+  const briefing = course.briefing && !progression.introSeen;
+  reset({ briefing });
+  if (briefing) dialogue.open();
 }
 $('start').onclick = startBriefing;
+function updateCourseDetails() {
+  document.body.dataset.snow = String(course.snow);
+  $('course-name').textContent = course.name;
+  $('route-name').textContent = course.name;
+  $('result-course').textContent = `${course.name} / FINISH`;
+  $('course-length').textContent = (length / 1000).toFixed(1);
+  $('course-corners').textContent = course.corners;
+  $('course-time').textContent = course.time;
+  $('course-weather').textContent = course.weather;
+  $('course-hint').textContent = course.hint;
+  const next = nextCourse();
+  $('course-switch').textContent = `${next.name} ↗`;
+  $('course-switch').setAttribute('aria-label', `Switch to ${next.name}`);
+  $('preview-map').setAttribute('aria-label', `${course.name} course map`);
+  drawMap($('preview-map'));
+}
+function nextCourse() {
+  const list = Object.values(courses);
+  return list[(list.indexOf(course) + 1) % list.length];
+}
+$('course-switch').onclick = async () => {
+  if (race.phase !== 'intro') return;
+  selectCourse(nextCourse().id);
+  camera = { ...course.preview };
+  loadCourse(wasm);
+  wasm.reset(track[0].x, track[0].y, track[0].a);
+  effects.reset();
+  $('course-switch').disabled = true;
+  $('start').disabled = true;
+  try {
+    await renderer.setCourse();
+    updateCourseDetails();
+    updateLeaderboard();
+    $('course-switch').disabled = false;
+    $('start').disabled = false;
+  } catch (error) {
+    showError(error);
+  }
+};
 $('restart').onclick = reset;
 $('again').onclick = reset;
 $('pause').onclick = pause;
@@ -165,13 +209,37 @@ function backToGarage() {
   $('hud').hidden = true;
   $('intro').hidden = false;
   document.body.classList.remove('playing');
-  camera = { x: 66, y: -155, zoom: 130 };
+  camera = { ...course.preview };
   wasm.reset(0, 0, track[0].a);
+  updateLeaderboard();
   $('start').focus();
 }
 $('back').onclick = backToGarage;
+function updateLeaderboard() {
+  $('leaderboard-rows').replaceChildren();
+  for (const entry of COURSES) {
+    const row = document.createElement('tr');
+    const name = document.createElement('th');
+    name.scope = 'row';
+    name.textContent = entry.name;
+    const score = document.createElement('td');
+    const best = progression.bestTime(entry.id);
+    score.textContent = best === null ? 'No winning run yet' : fmt(best / 1000);
+    row.append(name, score);
+    $('leaderboard-rows').append(row);
+  }
+  $('progress-note').textContent = progression.saved
+    ? 'Personal records · saved on this browser.'
+    : 'Cookies unavailable. Progress lasts for this visit only.';
+}
 window.addEventListener('keydown', (e) => {
   if (!race || race.phase === 'error' || dialogue.active) return;
+  if (
+    race.phase === 'intro' &&
+    e.target === $('course-switch') &&
+    ['Enter', 'Space'].includes(e.code)
+  )
+    return;
   if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code))
     e.preventDefault();
   if (e.repeat) return;
@@ -212,6 +280,7 @@ function finish() {
   $('results').hidden = false;
   $('countdown').hidden = true;
   const won = race.won;
+  if (won) progression.recordWin(course.id, race.overtakeTime);
   $('result-title').innerHTML = won
     ? 'OVERTAKE<br><em>CONFIRMED.</em>'
     : race.crashReason
@@ -272,8 +341,12 @@ function drawMap(canvas, live = false) {
     w = canvas.width,
     h = canvas.height;
   ctx.clearRect(0, 0, w, h);
-  const scale = (h - 28) / -track.at(-1).y;
-  const project = (p) => [w / 2 + (p.x - 60) * scale, h - 13 + p.y * scale];
+  const minX = Math.min(...track.map((p) => p.x)),
+    maxX = Math.max(...track.map((p) => p.x));
+  const minY = Math.min(...track.map((p) => p.y)),
+    maxY = Math.max(...track.map((p) => p.y));
+  const scale = Math.min((w - 70) / (maxX - minX), (h - 28) / (maxY - minY));
+  const project = (p) => [w / 2 + (p.x - (minX + maxX) / 2) * scale, h - 13 + (p.y - maxY) * scale];
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
   ctx.beginPath();
@@ -332,10 +405,11 @@ function frame(now) {
       accumulator -= step;
     }
   } else accumulator = 0;
-  if (!['intro', 'briefing'].includes(race.phase)) updateCamera(camera, s, dt);
+  if (!['intro', 'briefing', 'paused'].includes(race.phase)) updateCamera(camera, s, dt);
   dynamic.data.length = 0;
+  if (race.phase !== 'paused') sceneryTime += dt;
   effects.draw(race.phase === 'paused' ? 0 : dt, race.phase, s, dynamic);
-  renderer.draw(camera, dynamic);
+  renderer.draw(camera, dynamic, sceneryTime);
   hudTimer += dt;
   if (hudTimer > 0.075) {
     hudTimer = 0;
@@ -374,7 +448,7 @@ async function init() {
     wasm = result.instance.exports;
     s = new Float64Array(wasm.memory.buffer, wasm.statePointer(), 20);
     race = new Race(wasm, s);
-    track.forEach((p, i) => wasm.setPoint(i, p.x, p.y, p.d));
+    loadCourse(wasm);
     wasm.reset(0, 0, track[0].a);
     joystickHeading = s[2];
     updateJoystickGuide();
@@ -383,8 +457,9 @@ async function init() {
       showError(new Error(`The graphics device was lost (${info.reason}). Reload to reconnect.`)),
     );
     renderer.device.addEventListener('uncapturederror', (e) => showError(e.error));
-    $('course-length').textContent = (length / 1000).toFixed(1);
-    drawMap($('preview-map'));
+    updateCourseDetails();
+    updateLeaderboard();
+    $('course-switch').disabled = false;
     $('start').disabled = false;
     $('start').firstChild.textContent = 'START DESCENT ';
     requestAnimationFrame(frame);

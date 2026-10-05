@@ -1,4 +1,4 @@
-import { track, length, atDistance } from './track.js';
+import { track, length, atDistance, course, surfaces } from './track.js';
 export const ROAD_EXTENSION = 62;
 const color = (hex) => [
   parseInt(hex.slice(0, 2), 16) / 255,
@@ -58,7 +58,7 @@ export function renderPointAtDistance(d) {
   if (d >= 0 && d <= length) return atDistance(d);
   const endpoint = d < 0 ? track[0] : track.at(-1),
     direction = d < 0 ? -1 : 1,
-    distance = Math.abs(d),
+    distance = d < 0 ? -d : d - length,
     tangentX = Math.sin(endpoint.a) * direction,
     tangentY = -Math.cos(endpoint.a) * direction;
   return {
@@ -71,6 +71,7 @@ export function renderPointAtDistance(d) {
 }
 function roadStrip(mesh, width, col, offset = 0) {
   for (let d = -ROAD_EXTENSION; d < length + ROAD_EXTENSION; d += 5) {
+    if (width > 25 && course.bridges.some(([start, end]) => d >= start && d <= end)) continue;
     const a = renderPointAtDistance(d),
       b = renderPointAtDistance(Math.min(d + 5, length + ROAD_EXTENSION));
     mesh.quad(
@@ -82,7 +83,15 @@ function roadStrip(mesh, width, col, offset = 0) {
     );
   }
 }
-function scenery() {
+export function scenery() {
+  const snow = course.snow;
+  const bounds = {
+    minX: Math.min(...track.map((p) => p.x)) - 420,
+    maxX: Math.max(...track.map((p) => p.x)) + 420,
+    minY: Math.min(...track.map((p) => p.y)) - 220,
+    maxY: Math.max(...track.map((p) => p.y)) + 220,
+  };
+  const context = { course, atDistance, length, surfaces, color, bounds };
   const m = new Mesh();
   let seed = 42;
   const random = () => {
@@ -90,17 +99,25 @@ function scenery() {
     return (seed >>> 0) / 4294967296;
   };
   // Low-poly forest floor and contour-like rock shelves, generated once.
-  for (let y = -1750; y < 200; y += 65)
-    for (let x = -600; x < 700; x += 65) {
-      const c = [0.19 + random() * 0.025, 0.255 + random() * 0.025, 0.195 + random() * 0.02];
+  for (let y = bounds.minY; y < bounds.maxY; y += 65)
+    for (let x = bounds.minX; x < bounds.maxX; x += 65) {
+      const shade = random() * 0.035;
+      const c = snow
+        ? [0.77 + shade, 0.85 + shade, 0.89 + shade]
+        : [0.19 + shade, 0.255 + shade, 0.195 + shade];
       m.quad([x, y], [x + 65, y], [x + 65, y + 65], [x, y + 65], c);
     }
-  roadStrip(m, 58, palette.shadow, 6);
-  roadStrip(m, 45, palette.earth, 2);
-  roadStrip(m, 33, color('69715a'), 1);
-  roadStrip(m, 28, color('85886b'));
-  roadStrip(m, 25, palette.edge);
-  roadStrip(m, 23, palette.road);
+  course.drawTerrain?.(m, context);
+  const terrainVertices = m.data.length / 6;
+  const water = new Mesh();
+  course.drawWater?.(water, context);
+  roadStrip(m, 58, snow ? color('a9becb') : palette.shadow, 6);
+  roadStrip(m, 45, snow ? color('d5e4ec') : palette.earth, 2);
+  roadStrip(m, 33, color(snow ? 'e8f1f5' : '69715a'), 1);
+  roadStrip(m, 28, color(snow ? 'f6fafc' : '85886b'));
+  roadStrip(m, 25, snow ? color('adbdc7') : palette.edge);
+  roadStrip(m, 23, snow ? color('566674') : palette.road);
+  course.drawRoad?.(m, context);
   roadStrip(m, 0.23, color('b2b49a'), 10.4);
   roadStrip(m, 0.23, color('b2b49a'), -10.4);
   for (let d = -ROAD_EXTENSION; d < length + ROAD_EXTENSION; d += 12) {
@@ -135,19 +152,31 @@ function scenery() {
         color('ae6d50'),
       );
   }
-  for (let i = 0; i < 3700; i++) {
-    const x = -560 + random() * 1240,
-      y = -1720 + random() * 1900;
+  for (let i = 0; i < Math.min(12000, length * 2); i++) {
+    const x = bounds.minX + random() * (bounds.maxX - bounds.minX),
+      y = bounds.minY + random() * (bounds.maxY - bounds.minY);
     let near = 1e9;
     for (let j = 0; j < track.length; j += 3)
       near = Math.min(near, (track[j].x - x) ** 2 + (track[j].y - y) ** 2);
     if (near < 29 * 29) continue;
+    if (course.excludeTree?.(x, y, context)) continue;
     const r = 3 + random() * 7;
-    m.disc(x + 3, y + 4, r * 1.1, color('24382b'), 7);
-    const c = random();
-    m.disc(x, y, r, [0.14 + c * 0.05, 0.23 + c * 0.065, 0.17 + c * 0.025], 7);
-    m.disc(x - 1, y - 1, r * 0.65, [0.19 + c * 0.05, 0.28 + c * 0.05, 0.19 + c * 0.04], 6);
+    if (course.drawTree) {
+      course.drawTree(m, { x, y, radius: r, variation: random() }, context);
+    } else {
+      m.disc(x + 3, y + 4, r * 1.1, color('24382b'), 7);
+      const c = random();
+      m.disc(x, y, r, [0.14 + c * 0.05, 0.23 + c * 0.065, 0.17 + c * 0.025], 7);
+      m.disc(
+        x - 1,
+        y - 1,
+        r * 0.65,
+        snow ? color('eff7fa') : [0.19 + c * 0.05, 0.28 + c * 0.05, 0.19 + c * 0.04],
+        6,
+      );
+    }
   }
+  course.drawDetails?.(m, context);
   for (const d of [18, length - 13]) {
     const p = renderPointAtDistance(d);
     for (let row = 0; row < 2; row++)
@@ -164,18 +193,22 @@ function scenery() {
         );
       }
   }
-  return new Float32Array(m.data);
+  return {
+    vertices: new Float32Array(m.data),
+    terrainVertices,
+    water: new Float32Array(water.data),
+  };
 }
-const shader = `
-struct View { center: vec2f, extent: vec2f }
+const vertexShader = `
+struct View { center: vec2f, extent: vec2f, animation: vec4f }
 @group(0) @binding(0) var<uniform> view: View;
-struct Output { @builtin(position) pos: vec4f, @location(0) color: vec4f }
+struct Output { @builtin(position) pos: vec4f, @location(0) color: vec4f, @location(1) world: vec2f }
 @vertex fn vertex(@location(0) pos: vec2f, @location(1) color: vec4f) -> Output {
  var o: Output; let p=(pos-view.center)/view.extent;
- o.pos=vec4f(p.x,-p.y,0,1);o.color=color;return o;
+ o.pos=vec4f(p.x,-p.y,0,1);o.color=color;o.world=pos;return o;
 }
-@fragment fn fragment(input: Output) -> @location(0) vec4f { return input.color; }
 `;
+const flatFragment = `@fragment fn fragment(input: Output) -> @location(0) vec4f { return input.color; }`;
 export async function createRenderer(canvas) {
   if (!navigator.gpu)
     throw new Error(
@@ -190,62 +223,98 @@ export async function createRenderer(canvas) {
   const context = canvas.getContext('webgpu');
   const format = navigator.gpu.getPreferredCanvasFormat();
   context.configure({ device, format, alphaMode: 'opaque' });
-  const module = device.createShaderModule({ code: shader });
-  const pipeline = await device.createRenderPipelineAsync({
-    layout: 'auto',
-    vertex: {
-      module,
-      entryPoint: 'vertex',
-      buffers: [
-        {
-          arrayStride: 24,
-          attributes: [
-            { shaderLocation: 0, offset: 0, format: 'float32x2' },
-            { shaderLocation: 1, offset: 8, format: 'float32x4' },
-          ],
-        },
-      ],
-    },
-    fragment: {
-      module,
-      entryPoint: 'fragment',
-      targets: [
-        {
-          format,
-          blend: {
-            color: { srcFactor: 'src-alpha', dstFactor: 'one-minus-src-alpha' },
-            alpha: { srcFactor: 'one', dstFactor: 'one-minus-src-alpha' },
+  const createPipeline = (fragment) => {
+    const module = device.createShaderModule({ code: vertexShader + fragment });
+    return device.createRenderPipelineAsync({
+      layout: 'auto',
+      vertex: {
+        module,
+        entryPoint: 'vertex',
+        buffers: [
+          {
+            arrayStride: 24,
+            attributes: [
+              { shaderLocation: 0, offset: 0, format: 'float32x2' },
+              { shaderLocation: 1, offset: 8, format: 'float32x4' },
+            ],
           },
-        },
-      ],
-    },
-    primitive: { topology: 'triangle-list' },
-  });
-  const scene = scenery(),
-    staticBuffer = device.createBuffer({
-      size: scene.byteLength,
-      usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+        ],
+      },
+      fragment: {
+        module,
+        entryPoint: 'fragment',
+        targets: [
+          {
+            format,
+            blend: {
+              color: { srcFactor: 'src-alpha', dstFactor: 'one-minus-src-alpha' },
+              alpha: { srcFactor: 'one', dstFactor: 'one-minus-src-alpha' },
+            },
+          },
+        ],
+      },
+      primitive: { topology: 'triangle-list' },
     });
-  device.queue.writeBuffer(staticBuffer, 0, scene);
+  };
+  const pipeline = await createPipeline(flatFragment);
+  let scene, staticBuffer, waterBuffer, waterPipeline, waterGroup;
   const dynamicBuffer = device.createBuffer({
     size: 2 * 1024 * 1024,
     usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
   });
   const uniform = device.createBuffer({
-    size: 16,
+    size: 32,
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   });
   const group = device.createBindGroup({
     layout: pipeline.getBindGroupLayout(0),
     entries: [{ binding: 0, resource: { buffer: uniform } }],
   });
-  const values = new Float32Array(4);
+  const values = new Float32Array(8);
   const upload = new Float32Array((2 * 1024 * 1024) / 4);
   let width = 0,
     height = 0;
+  const waterPipelines = new Map();
+  async function setCourse() {
+    const next = scenery();
+    let nextPipeline = null;
+    if (next.water.length) {
+      if (!course.waterFragment)
+        throw new Error('Map water geometry needs a procedural fragment shader');
+      nextPipeline = waterPipelines.get(course.waterFragment);
+      if (!nextPipeline) {
+        nextPipeline = await createPipeline(course.waterFragment);
+        waterPipelines.set(course.waterFragment, nextPipeline);
+      }
+    }
+    const nextBuffer = device.createBuffer({
+      size: next.vertices.byteLength,
+      usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+    });
+    device.queue.writeBuffer(nextBuffer, 0, next.vertices);
+    staticBuffer?.destroy();
+    waterBuffer?.destroy();
+    staticBuffer = nextBuffer;
+    waterBuffer = null;
+    waterPipeline = nextPipeline;
+    scene = next;
+    if (nextPipeline) {
+      waterBuffer = device.createBuffer({
+        size: next.water.byteLength,
+        usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+      });
+      device.queue.writeBuffer(waterBuffer, 0, next.water);
+      waterGroup = device.createBindGroup({
+        layout: nextPipeline.getBindGroupLayout(0),
+        entries: [{ binding: 0, resource: { buffer: uniform } }],
+      });
+    }
+  }
+  await setCourse();
   return {
     device,
-    draw(camera, dynamic) {
+    setCourse,
+    draw(camera, dynamic, sceneryTime = 0) {
       const dpr = Math.min(devicePixelRatio, 1.5),
         w = Math.round(innerWidth * dpr),
         h = Math.round(innerHeight * dpr);
@@ -253,7 +322,16 @@ export async function createRenderer(canvas) {
         canvas.width = width = w;
         canvas.height = height = h;
       }
-      values.set([camera.x, camera.y, (camera.zoom * width) / height, camera.zoom]);
+      values.set([
+        camera.x,
+        camera.y,
+        (camera.zoom * width) / height,
+        camera.zoom,
+        sceneryTime,
+        0,
+        0,
+        0,
+      ]);
       device.queue.writeBuffer(uniform, 0, values);
       const floats = dynamic.data.length;
       if (floats > upload.length) throw new Error('Dynamic geometry budget exceeded');
@@ -275,7 +353,17 @@ export async function createRenderer(canvas) {
       pass.setPipeline(pipeline);
       pass.setBindGroup(0, group);
       pass.setVertexBuffer(0, staticBuffer);
-      pass.draw(scene.length / 6);
+      if (waterPipeline) {
+        pass.draw(scene.terrainVertices);
+        pass.setPipeline(waterPipeline);
+        pass.setBindGroup(0, waterGroup);
+        pass.setVertexBuffer(0, waterBuffer);
+        pass.draw(scene.water.length / 6);
+        pass.setPipeline(pipeline);
+        pass.setBindGroup(0, group);
+        pass.setVertexBuffer(0, staticBuffer);
+        pass.draw(scene.vertices.length / 6 - scene.terrainVertices, 1, scene.terrainVertices);
+      } else pass.draw(scene.vertices.length / 6);
       if (floats) {
         pass.setVertexBuffer(0, dynamicBuffer);
         pass.draw(floats / 6);

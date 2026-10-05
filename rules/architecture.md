@@ -3,6 +3,7 @@
 ## Boundaries
 
 - `src/client/`: browser entry point, deterministic race lifecycle, course/AI, WebGPU renderer. Keep DOM/audio out of simulation modules.
+- `src/client/progression.js`: validated personal course records and first completed briefing state, persisted to a path-scoped browser cookie and kept out of simulation.
 - `src/physics/`: AssemblyScript physics compiled to WASM. Document the shared-memory layout and validate exported inputs. Do not add allocations in the physics loop.
 - `src/server/`: loopback static server. Only `dist/` is public; never serve the repository root.
 - `public/`: authored HTML/CSS and static assets. No generated binaries.
@@ -21,3 +22,7 @@ ESLint checks JavaScript, AssemblyScript, and CSS; HTML Validate checks HTML; Pr
 Keep simulation at 120 Hz independently of render rate. Bound particles and history, upload static geometry once, reuse buffers, and measure before optimizing. No accounts, telemetry, network multiplayer, or external runtime assets without a separately scoped change.
 
 CSS uses ESLint's recommended CSS rules and the project class naming rule. Responsive and state selectors intentionally override base components; syntax, validity, conventions, and formatting remain enforced.
+
+## Map modules
+
+Each authored map lives under `src/client/maps/<id>/config.js`, with optional scenery modules beside it. The build discovers folders and generates an ignored `catalog.js`; do not hand-edit or commit that generated module. Shared sampling, road rendering, physics and UI read the selected configuration. Map objects use the drawing hooks described in `src/client/maps/README.md`; adding a map must not require a new renderer or UI branch. Fit the 2,048-point road and 64-surface WASM capacities. Course changes reload speed/surfaces and release the previous static GPU buffer. Maps may supply a static water mesh and procedural fragment shader between terrain and road rendering and a custom tree hook. Water shaders are cached, map changes release static scenery/water buffers, and shader failures use the existing recovery screen. Procedural water uses the paused scenery clock.

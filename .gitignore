@@ -11,3 +11,6 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+
+# Generated map imports; npm run build discovers authored map folders.
+src/client/maps/catalog.js

@@ -1,6 +1,6 @@
-import { aiInput, length, track } from './track.js';
+import { aiInput, finishDistance, track } from './track.js';
 export const STEP = 1 / 120;
-export const FINISH_DISTANCE = length - 14;
+export { finishDistance as FINISH_DISTANCE } from './track.js';
 // A car length of clearance means the player's rear axle is ahead of the rival.
 export const OVERTAKE_CLEARANCE = 3.1;
 export const OVERTAKE_CONFIRM_TIME = 5;
@@ -90,7 +90,7 @@ export class Race {
       return;
     }
     if (this.state[6] > 8 && Math.abs(this.state[7]) > 0.085) this.driftTime += STEP;
-    if (this.rivalFinish === null && this.state[18] >= FINISH_DISTANCE)
+    if (this.rivalFinish === null && this.state[18] >= finishDistance)
       this.rivalFinish = this.elapsed;
     const clearPass = this.state[8] - this.state[18] >= OVERTAKE_CLEARANCE;
     this.overtakeDuration =

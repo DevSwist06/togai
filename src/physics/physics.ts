@@ -16,6 +16,58 @@ export function setPoint(i: i32, x: f64, y: f64, d: f64): void {
   distance[i] = d;
   count = i + 1;
 }
+// Fixed capacity hazard records: world x/y, patch half-width/length, heading, kind (1 snow, 2 ice).
+// State layout stays at 10 float64 values per car. Reset preserves course hazards.
+const surfaceX = new Float64Array(64);
+const surfaceY = new Float64Array(64);
+const surfaceWidth = new Float64Array(64);
+const surfaceLength = new Float64Array(64);
+const surfaceAngle = new Float64Array(64);
+let courseSpeed: f64 = 1.0;
+export function setCourseSpeed(value: f64): void {
+  if (isFinite(value) && value >= 1 && value <= 2) courseSpeed = value;
+}
+const surfaceType = new Int32Array(64);
+let surfaceCount: i32 = 0;
+export function clearSurfaces(): void {
+  surfaceCount = 0;
+}
+export function setSurface(
+  i: i32,
+  x: f64,
+  y: f64,
+  width: f64,
+  length: f64,
+  angle: f64,
+  kind: i32,
+): void {
+  if (
+    i < 0 ||
+    i >= 64 ||
+    i > surfaceCount ||
+    !isFinite(x) ||
+    !isFinite(y) ||
+    Math.abs(x) > 10000 ||
+    Math.abs(y) > 10000 ||
+    !isFinite(width) ||
+    width <= 0 ||
+    width > 30 ||
+    !isFinite(length) ||
+    length <= 0 ||
+    length > 60 ||
+    !isFinite(angle) ||
+    Math.abs(angle) > 100 ||
+    (kind !== 1 && kind !== 2)
+  )
+    return;
+  surfaceX[i] = x;
+  surfaceY[i] = y;
+  surfaceWidth[i] = width;
+  surfaceLength[i] = length;
+  surfaceAngle[i] = angle;
+  surfaceType[i] = kind;
+  if (i >= surfaceCount) surfaceCount = i + 1;
+}
 export function reset(x: f64, y: f64, heading: f64): void {
   if (!isFinite(x) || !isFinite(y) || !isFinite(heading)) return;
   for (let i = 0; i < 20; i++) state[i] = 0;
@@ -53,6 +105,31 @@ export function step(
   brake = Math.max(0, Math.min(1, brake));
   handbrake = Math.max(0, Math.min(1, handbrake));
   const k = car * 10;
+  let snow = false,
+    ice = false;
+  for (let i = 0; i < surfaceCount; i++) {
+    const dx = state[k] - surfaceX[i],
+      dy = state[k + 1] - surfaceY[i];
+    const c = Math.cos(surfaceAngle[i]),
+      s = Math.sin(surfaceAngle[i]);
+    const localX = dx * c + dy * s;
+    const localY = -dx * s + dy * c;
+    const width = surfaceWidth[i],
+      height = surfaceLength[i];
+    const corner = Math.min(width * 0.22, 1.2);
+    const cornerX = Math.max(Math.abs(localX) - (width - corner), 0.0),
+      cornerY = Math.max(Math.abs(localY) - (height - corner), 0.0);
+    const inside =
+      surfaceType[i] === 1
+        ? (localX / width) ** 2 + (localY / height) ** 2 < 1.0
+        : Math.abs(localX) < width &&
+          Math.abs(localY) < height &&
+          cornerX * cornerX + cornerY * cornerY < corner * corner;
+    if (inside) {
+      if (surfaceType[i] === 1) snow = true;
+      else ice = true;
+    }
+  }
   let angle = state[k + 2];
   let vx = state[k + 3],
     vy = state[k + 4];
@@ -61,23 +138,26 @@ export function step(
   // Handbrake initiates a broad slide without the abrupt rotation or speed loss
   // of a simulation-focused drift model.
   const yaw = steering * Math.min(speed / 15.0, 1.0) * (1.12 + handbrake * 0.32);
-  angle += yaw * dt;
+  angle += yaw * dt * (ice ? 0.32 : 1.0);
   const fx = Math.sin(angle),
     fy = -Math.cos(angle);
   const rx = Math.cos(angle),
     ry = Math.sin(angle);
   let forward = vx * fx + vy * fy;
   let lateral = vx * rx + vy * ry;
-  const grip = handbrake > 0.0 ? 2.3 : 5.0;
+  const grip = ice ? 0.3 : handbrake > 0.0 ? 2.3 : 5.0;
   lateral *= Math.exp(-grip * dt);
   const engineForce = car === 1 ? 20.0 : 13.0;
   const accel =
-    throttle * engineForce -
+    throttle * engineForce * courseSpeed -
     0.45 -
-    forward * Math.abs(forward) * 0.0066 -
+    (forward * Math.abs(forward) * (ice ? 0.0058 : 0.0066)) / courseSpeed +
+    (ice && speed > 1.0 ? 1.8 : 0.0) -
     brake * 26.0 -
     handbrake * 1.5;
   forward = Math.max(0.0, forward + accel * dt);
+  forward *= Math.exp(-(snow ? 1.5 : 0.0) * dt);
+  lateral *= Math.exp(-(snow ? 1.5 : 0.0) * dt);
   vx = fx * forward + rx * lateral;
   vy = fy * forward + ry * lateral;
   let x = state[k] + vx * dt,

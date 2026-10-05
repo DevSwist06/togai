@@ -241,12 +241,6 @@ h2 {
   margin: 15px 0;
 }
 
-.brief h2 span {
-  font-size: 16px;
-  color: #6b7e70;
-  float: right;
-}
-
 .tags {
   display: flex;
   gap: 7px;
@@ -294,19 +288,6 @@ h2 {
   display: flex;
   align-items: center;
   gap: 6px;
-}
-
-.brief-bottom span {
-  margin-left: auto;
-  color: #7c8b7e;
-}
-
-.brief-bottom i {
-  width: 5px;
-  height: 5px;
-  background: #b8c896;
-  border-radius: 50%;
-  display: inline-block;
 }
 
 .intro-bottom {
@@ -618,6 +599,49 @@ footer > span:first-child {
   display: block;
   font: 24px monospace;
   margin-top: 10px;
+}
+
+.leaderboard {
+  border-top: 1px solid #a0b09a40;
+  padding: 16px 0 10px;
+}
+
+.leaderboard h3 {
+  font: 12px monospace;
+  letter-spacing: 1.4px;
+  margin: 0;
+}
+
+.leaderboard p {
+  font: 10px/1.5 monospace;
+  margin: 8px 0;
+}
+
+#record-status {
+  color: var(--orange);
+}
+
+.leaderboard table {
+  width: 100%;
+  border-collapse: collapse;
+  font: 12px monospace;
+}
+
+.leaderboard th,
+.leaderboard td {
+  padding: 9px 0;
+  text-align: left;
+  font-weight: 400;
+}
+
+.leaderboard thead {
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.leaderboard tr > :last-child {
+  text-align: right;
+  padding-left: 12px;
 }
 
 #error {
@@ -1101,5 +1125,241 @@ body.playing .header-label {
     min-height: 42px;
     padding: 7px 12px;
     font-size: 15px;
+  }
+}
+
+.course-switcher {
+  justify-content: space-between;
+  gap: 12px;
+  letter-spacing: 0.8px;
+}
+
+.course-switcher > span {
+  white-space: nowrap;
+}
+
+#course-switch {
+  padding: 8px;
+  border: 1px solid #71858a;
+  border-radius: 3px;
+  background: #24383e;
+  color: #edf7fa;
+  font: inherit;
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.course-hint {
+  margin: 10px 0 18px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #c1d1d5;
+}
+
+.brief {
+  width: 350px;
+}
+
+@media (width <= 850px) {
+  .brief {
+    width: 290px;
+  }
+}
+
+@media (width <= 600px) {
+  #intro {
+    overflow-y: auto;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 22px;
+    padding: 85px 6% 90px;
+  }
+
+  .brief {
+    display: block;
+    order: -1;
+    width: 100%;
+    margin: 0;
+    padding: 15px;
+  }
+
+  .brief > :not(.course-switcher, h2, .course-hint, .brief-bottom, .leaderboard) {
+    display: none;
+  }
+
+  .brief-bottom {
+    margin: 10px 0 0;
+    padding: 10px 0 0;
+    font-size: 8px;
+  }
+
+  .brief h2 {
+    margin: 14px 0 0;
+    font-size: 22px;
+  }
+
+  .course-hint {
+    margin-bottom: 0;
+  }
+
+  .intro-copy h1 {
+    font-size: 68px;
+    margin: 18px 0;
+  }
+
+  .intro-copy p {
+    margin: 15px 0;
+  }
+
+  .intro-bottom {
+    position: static;
+    display: flex;
+  }
+}
+
+@media (height <= 700px) and (width > 600px) {
+  .intro-copy h1 {
+    font-size: 64px;
+    margin: 15px 0;
+  }
+
+  .brief {
+    margin-top: 0;
+  }
+
+  .course-hint {
+    display: none;
+  }
+
+  #preview-map {
+    height: 140px;
+  }
+}
+
+@media (height <= 500px) {
+  #intro {
+    overflow-y: auto;
+    align-items: flex-start;
+    padding-top: 50px;
+    gap: 30px;
+  }
+
+  .brief {
+    display: block;
+    flex-shrink: 0;
+  }
+
+  .course-hint {
+    display: none;
+  }
+
+  .leaderboard {
+    padding: 8px 0 4px;
+  }
+
+  .leaderboard p {
+    font-size: 8px;
+    line-height: 1.2;
+    margin: 4px 0;
+  }
+
+  .leaderboard table {
+    font-size: 9px;
+  }
+
+  .leaderboard th,
+  .leaderboard td {
+    padding: 3px 0;
+  }
+
+  .leaderboard tr > :last-child {
+    padding-left: 4px;
+  }
+
+  .brief > :not(.course-switcher, h2, .course-hint, .brief-bottom, .leaderboard),
+  .intro-copy > .eyebrow,
+  .intro-copy > p,
+  .intro-copy .hint {
+    display: none;
+  }
+
+  .intro-copy h1 {
+    font-size: 55px;
+    margin: 12px 0 20px;
+  }
+}
+
+body[data-snow='true']:not(.playing) .grain {
+  background: linear-gradient(90deg, rgb(12 24 30 / 94%), rgb(12 24 30 / 20%));
+}
+
+@media (width <= 600px) and (height <= 500px) {
+  #intro {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 56px 6% 30px;
+  }
+
+  .intro-copy,
+  #intro .brief {
+    width: 48%;
+  }
+
+  #intro .brief {
+    flex-shrink: 0;
+    margin: 0;
+    padding: 12px;
+  }
+
+  .intro-copy > .eyebrow,
+  .intro-copy > p,
+  .intro-copy .hint,
+  .course-hint,
+  .intro-bottom {
+    display: none;
+  }
+
+  .intro-copy h1 {
+    font-size: 48px;
+    margin: 12px 0;
+  }
+
+  #start {
+    width: 100%;
+    min-width: 0;
+    padding: 14px 10px;
+    gap: 8px;
+    font-size: 10px;
+  }
+
+  #course-switch {
+    font-size: 7px;
+    padding: 5px;
+  }
+
+  .brief-bottom {
+    font-size: 7px;
+  }
+
+  .leaderboard {
+    padding-top: 8px;
+  }
+
+  .leaderboard p {
+    font-size: 8px;
+    line-height: 1.2;
+    margin: 5px 0;
+  }
+
+  .leaderboard table {
+    font-size: 7px;
+  }
+
+  .leaderboard th,
+  .leaderboard td {
+    padding: 5px 0;
   }
 }

@@ -1,67 +1,60 @@
-// A point-to-point pass. Units are meters; smaller Y is farther downhill.
-const controls = [
-  [0, 65],
-  [0, 0],
-  [5, -120],
-  [80, -210],
-  [190, -240],
-  [260, -300],
-  [245, -365],
-  [130, -385],
-  [35, -440],
-  [-10, -525],
-  [45, -595],
-  [175, -620],
-  [245, -685],
-  [210, -765],
-  [90, -800],
-  [-35, -850],
-  [-85, -945],
-  [-15, -1020],
-  [100, -1025],
-  [195, -1080],
-  [205, -1160],
-  [120, -1215],
-  [0, -1240],
-  [-70, -1320],
-  [-35, -1410],
-  [60, -1470],
-  [90, -1570],
-  [90, -1650],
-];
-for (const point of controls) {
-  point[0] *= 0.72;
-  point[1] *= 0.72;
-}
-export const track = [];
-for (let i = 1; i < controls.length - 2; i++) {
-  const [a, b, c, d] = controls.slice(i - 1, i + 3);
-  const steps = Math.ceil(Math.hypot(c[0] - b[0], c[1] - b[1]) / 5);
-  for (let j = 0; j < steps; j++) {
-    const t = j / steps,
-      t2 = t * t,
-      t3 = t2 * t;
-    const f = (k) =>
-      0.5 *
-      (2 * b[k] +
-        (-a[k] + c[k]) * t +
-        (2 * a[k] - 5 * b[k] + 4 * c[k] - d[k]) * t2 +
-        (-a[k] + 3 * b[k] - 3 * c[k] + d[k]) * t3);
-    track.push({ x: f(0), y: f(1), d: 0 });
+import configs from './maps/catalog.js';
+function buildTrack(controls) {
+  const track = [];
+  for (let i = 1; i < controls.length - 2; i++) {
+    const [a, b, c, d] = controls.slice(i - 1, i + 3);
+    const steps = Math.ceil(Math.hypot(c[0] - b[0], c[1] - b[1]) / 5);
+    for (let j = 0; j < steps; j++) {
+      const t = j / steps,
+        t2 = t * t,
+        t3 = t2 * t;
+      const f = (k) =>
+        0.5 *
+        (2 * b[k] +
+          (-a[k] + c[k]) * t +
+          (2 * a[k] - 5 * b[k] + 4 * c[k] - d[k]) * t2 +
+          (-a[k] + 3 * b[k] - 3 * c[k] + d[k]) * t3);
+      track.push({ x: f(0), y: f(1), d: 0 });
+    }
   }
+  track.push({ x: controls.at(-2)[0], y: controls.at(-2)[1], d: 0 });
+  for (let i = 0; i < track.length; i++) {
+    const p = track[i],
+      a = track[Math.max(0, i - 1)],
+      b = track[Math.min(track.length - 1, i + 1)];
+    const l = Math.hypot(b.x - a.x, b.y - a.y);
+    p.nx = -(b.y - a.y) / l;
+    p.ny = (b.x - a.x) / l;
+    p.a = Math.atan2(b.x - a.x, -(b.y - a.y));
+    if (i) p.d = a.d + Math.hypot(p.x - a.x, p.y - a.y);
+  }
+  return track;
 }
-track.push({ x: controls.at(-2)[0], y: controls.at(-2)[1], d: 0 });
-for (let i = 0; i < track.length; i++) {
-  const p = track[i],
-    a = track[Math.max(0, i - 1)],
-    b = track[Math.min(track.length - 1, i + 1)];
-  const l = Math.hypot(b.x - a.x, b.y - a.y);
-  p.nx = -(b.y - a.y) / l;
-  p.ny = (b.x - a.x) / l;
-  p.a = Math.atan2(b.x - a.x, -(b.y - a.y));
-  if (i) p.d = a.d + Math.hypot(p.x - a.x, p.y - a.y);
+export const courses = Object.fromEntries(
+  configs.map((config) => [config.id, { ...config, points: buildTrack(config.controls) }]),
+);
+export let course;
+export let track;
+export let length;
+export let finishDistance;
+export let surfaces;
+export function selectCourse(id) {
+  if (!Object.hasOwn(courses, id)) throw new Error('Unknown course');
+  course = courses[id];
+  track = course.points;
+  length = track.at(-1).d;
+  finishDistance = length - 14;
+  surfaces = course.surfaces.map((surface) => {
+    const p = atDistance(surface.d);
+    return { ...surface, x: p.x + p.nx * surface.offset, y: p.y + p.ny * surface.offset, a: p.a };
+  });
 }
-export const length = track.at(-1).d;
+export function loadCourse(wasm) {
+  track.forEach((p, i) => wasm.setPoint(i, p.x, p.y, p.d));
+  wasm.clearSurfaces();
+  wasm.setCourseSpeed(course.speedMultiplier);
+  surfaces.forEach((p, i) => wasm.setSurface(i, p.x, p.y, p.width, p.length, p.a, p.type));
+}
 export function atDistance(d) {
   d = Math.max(0, Math.min(length, d));
   let lo = 0,
@@ -87,7 +80,7 @@ export function aiInput(s) {
     p = s[18];
   const target = atDistance(p + 13 + speed * 0.63);
   // The AI holds an outside line, leaving a safe lane for a clean pass.
-  const offset = 6.5;
+  const offset = course.ai.offset;
   const desired = Math.atan2(
     target.x + target.nx * offset - s[10],
     -(target.y + target.ny * offset - s[11]),
@@ -96,11 +89,16 @@ export function aiInput(s) {
   const near = atDistance(p + 12),
     far = atDistance(p + 54);
   const bend = Math.abs(Math.atan2(Math.sin(far.a - near.a), Math.cos(far.a - near.a)));
-  const targetSpeed = Math.max(24, 54 - bend * 30);
+  const targetSpeed = Math.max(
+    course.ai.minSpeed,
+    course.ai.maxSpeed - bend * course.ai.bendSlowdown,
+  );
   return {
     steer: Math.max(-1, Math.min(1, delta * 2.7)),
     throttle: speed < targetSpeed ? 1 : 0,
     brake: speed > targetSpeed + 2 ? 0.45 : 0,
-    handbrake: bend > 0.35 && Math.abs(delta) > 0.08 && speed > 24 ? 1 : 0,
+    handbrake: course.ai.drift && bend > 0.35 && Math.abs(delta) > 0.08 && speed > 24 ? 1 : 0,
   };
 }
+
+selectCourse('kasumi');
