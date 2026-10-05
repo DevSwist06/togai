@@ -13,7 +13,7 @@ Required configuration:
 - `snow`: shared winter ground/shoulder/tree palette; `briefing`: whether to show Ren before the countdown.
 - `speedMultiplier`: from 1 to 2; scales engine force and inversely scales aerodynamic drag for both cars. Kasumi uses 1; Beaufort uses 1.4. Resets retain it; changing courses reloads it.
 - `preview`: `{x, y, zoom}` for the garage camera.
-- `ai`: `{offset, maxSpeed, minSpeed, bendSlowdown, drift}`. Test a complete real-WASM run after changing a route or pace.
+- `ai`: `{offset, maxSpeed, minSpeed, bendSlowdown, drift, acceleration?}`. The optional `acceleration` scales rival throttle from 0 to 1; it defaults to 1. Test a complete real-WASM run after changing a route or pace.
 - `bridges`: `[startDistance, endDistance]` pairs. Broad shoulders are omitted within these spans so a custom bridge can cross open water.
 - `surfaces`: at most 64 oriented patches `{d, offset, width, length, type}`. `d` is route distance and `offset` is signed lateral distance in meters. `width` and `length` are **half** dimensions. Type 1 is elliptical, fully crossable slow snow; type 2 is a rounded rectangle of slippery, gently accelerating ice. Width must be 0–30 meters (exclusive of zero); length 0–60. Keep hazards within the road and out of bridge spans when authoring ice-free bridges. Optional `variant` can choose a map-owned appearance; Beaufort cycles four snowbank designs.
 

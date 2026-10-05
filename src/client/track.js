@@ -80,7 +80,22 @@ export function aiInput(s) {
     p = s[18];
   const target = atDistance(p + 13 + speed * 0.63);
   // The AI holds an outside line, leaving a safe lane for a clean pass.
-  const offset = course.ai.offset;
+  let offset = course.ai.offset;
+  let nearestHazard = Infinity;
+  const hazardLookahead = course.ai.hazardLookahead ?? 42;
+  const hazardOffset = course.ai.hazardOffset ?? 3.5;
+  for (const surface of surfaces) {
+    const ahead = surface.d - p;
+    if (
+      ahead >= -surface.length &&
+      ahead < hazardLookahead &&
+      Math.abs(offset - surface.offset) < surface.width + 1.4 &&
+      ahead < nearestHazard
+    ) {
+      nearestHazard = ahead;
+      offset = surface.offset > 0 ? -hazardOffset : hazardOffset;
+    }
+  }
   const desired = Math.atan2(
     target.x + target.nx * offset - s[10],
     -(target.y + target.ny * offset - s[11]),
@@ -95,9 +110,15 @@ export function aiInput(s) {
   );
   return {
     steer: Math.max(-1, Math.min(1, delta * 2.7)),
-    throttle: speed < targetSpeed ? 1 : 0,
+    throttle: speed < targetSpeed ? (course.ai.acceleration ?? 1) : 0,
     brake: speed > targetSpeed + 2 ? 0.45 : 0,
-    handbrake: course.ai.drift && bend > 0.35 && Math.abs(delta) > 0.08 && speed > 24 ? 1 : 0,
+    handbrake:
+      course.ai.drift &&
+      bend > (course.ai.driftThreshold ?? 0.35) &&
+      Math.abs(delta) > 0.08 &&
+      speed > 24
+        ? (course.ai.driftStrength ?? 1)
+        : 0,
   };
 }
 

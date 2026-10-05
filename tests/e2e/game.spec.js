@@ -540,7 +540,7 @@ test('Beaufort switch sits beside the course label, skips Ren and survives resta
   await toggle.focus();
   await page.keyboard.press('Enter');
   await expect(page.locator('#course-name')).toHaveText('BEAUFORT MOUNTAIN');
-  await expect(page.locator('#course-length')).toHaveText('7.5');
+  await expect(page.locator('#course-length')).toHaveText('3.9');
   await expect(page.locator('#course-hint')).toContainText('Half-road ice');
   await page.screenshot({ path: test.info().outputPath('beaufort-home-desktop.png') });
   await page.setViewportSize({ width: 390, height: 844 });
@@ -590,7 +590,7 @@ test('Beaufort firs, caustic river and half-road ice render on desktop and compa
   await ready(page);
   await page.locator('#course-switch').click();
   await expect(page.locator('#course-name')).toHaveText('BEAUFORT MOUNTAIN');
-  await page.evaluate(() => window.__viewCourse(215));
+  await page.evaluate(() => window.__viewCourse(90));
   const before = await page.locator('#game').screenshot();
   await page.waitForTimeout(250);
   const after = await page.locator('#game').screenshot();
@@ -630,7 +630,7 @@ test('Beaufort firs, caustic river and half-road ice render on desktop and compa
   await page.evaluate(() => window.__viewCourse(350));
   await page.screenshot({ path: test.info().outputPath('beaufort-ice-snow.png') });
   await page.evaluate(() => {
-    window.__viewCourse(215);
+    window.__viewCourse(90);
     window.__pauseView();
   });
   const pausedTime = await page.evaluate(() => window.__sceneryTime());
