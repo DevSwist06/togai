@@ -6,6 +6,8 @@ const roadY = new Float64Array(2048);
 const distance = new Float64Array(2048);
 let count: i32 = 0;
 const halfRoad: f64 = 10.4;
+const carHalfWidth: f64 = 1.05;
+const carHalfLength: f64 = 2.3;
 export function statePointer(): usize {
   return state.dataStart;
 }
@@ -209,20 +211,119 @@ export function step(
   state[k + 7] = Math.atan2(lateral, Math.max(0.1, forward));
   state[k + 8] = prog;
 }
+function rectanglesOverlap(
+  dx: f64,
+  dy: f64,
+  axisX: f64,
+  axisY: f64,
+  playerForwardX: f64,
+  playerForwardY: f64,
+  playerRightX: f64,
+  playerRightY: f64,
+  rivalForwardX: f64,
+  rivalForwardY: f64,
+  rivalRightX: f64,
+  rivalRightY: f64,
+): i32 {
+  const centerProjection = Math.abs(dx * axisX + dy * axisY);
+  const playerProjection =
+    carHalfLength * Math.abs(playerForwardX * axisX + playerForwardY * axisY) +
+    carHalfWidth * Math.abs(playerRightX * axisX + playerRightY * axisY);
+  const rivalProjection =
+    carHalfLength * Math.abs(rivalForwardX * axisX + rivalForwardY * axisY) +
+    carHalfWidth * Math.abs(rivalRightX * axisX + rivalRightY * axisY);
+  return centerProjection <= playerProjection + rivalProjection ? 1 : 0;
+}
 // Returns whether the player and rival made contact this simulation step.
 export function resolveCars(): i32 {
   let dx = state[10] - state[0],
     dy = state[11] - state[1];
   const dist = Math.sqrt(dx * dx + dy * dy);
-  if (dist < 3.1) {
+  const playerForwardX = Math.sin(state[2]),
+    playerForwardY = -Math.cos(state[2]),
+    playerRightX = Math.cos(state[2]),
+    playerRightY = Math.sin(state[2]),
+    rivalForwardX = Math.sin(state[12]),
+    rivalForwardY = -Math.cos(state[12]),
+    rivalRightX = Math.cos(state[12]),
+    rivalRightY = Math.sin(state[12]);
+  if (
+    rectanglesOverlap(
+      dx,
+      dy,
+      playerForwardX,
+      playerForwardY,
+      playerForwardX,
+      playerForwardY,
+      playerRightX,
+      playerRightY,
+      rivalForwardX,
+      rivalForwardY,
+      rivalRightX,
+      rivalRightY,
+    ) &&
+    rectanglesOverlap(
+      dx,
+      dy,
+      playerRightX,
+      playerRightY,
+      playerForwardX,
+      playerForwardY,
+      playerRightX,
+      playerRightY,
+      rivalForwardX,
+      rivalForwardY,
+      rivalRightX,
+      rivalRightY,
+    ) &&
+    rectanglesOverlap(
+      dx,
+      dy,
+      rivalForwardX,
+      rivalForwardY,
+      playerForwardX,
+      playerForwardY,
+      playerRightX,
+      playerRightY,
+      rivalForwardX,
+      rivalForwardY,
+      rivalRightX,
+      rivalRightY,
+    ) &&
+    rectanglesOverlap(
+      dx,
+      dy,
+      rivalRightX,
+      rivalRightY,
+      playerForwardX,
+      playerForwardY,
+      playerRightX,
+      playerRightY,
+      rivalForwardX,
+      rivalForwardY,
+      rivalRightX,
+      rivalRightY,
+    )
+  ) {
+    let normalX = dx,
+      normalY = dy;
     if (dist > 0.001) {
-      dx /= dist;
-      dy /= dist;
+      normalX /= dist;
+      normalY /= dist;
     } else {
-      dx = 1.0;
-      dy = 0.0;
+      normalX = 1.0;
+      normalY = 0.0;
     }
-    const push = (3.1 - dist) * 0.5;
+    const playerRadius =
+        carHalfLength * Math.abs(playerForwardX * normalX + playerForwardY * normalY) +
+        carHalfWidth * Math.abs(playerRightX * normalX + playerRightY * normalY),
+      rivalRadius =
+        carHalfLength * Math.abs(rivalForwardX * normalX + rivalForwardY * normalY) +
+        carHalfWidth * Math.abs(rivalRightX * normalX + rivalRightY * normalY),
+      requiredDistance = Math.max(3.1, playerRadius + rivalRadius),
+      push = Math.max(0.0, requiredDistance - dist) * 0.5;
+    dx = normalX;
+    dy = normalY;
     state[0] -= dx * push;
     state[1] -= dy * push;
     state[10] += dx * push;

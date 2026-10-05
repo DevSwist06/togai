@@ -419,7 +419,7 @@ function frame(now) {
   fpsFrames++;
   fpsTime += realDt;
   if (fpsTime >= 0.75) {
-    $('performance').textContent = `${Math.round(fpsFrames / fpsTime)} FPS  /  WEBGPU + WASM`;
+    $('performance').textContent = `${Math.round(fpsFrames / fpsTime)} FPS`;
     fpsFrames = 0;
     fpsTime = 0;
   }

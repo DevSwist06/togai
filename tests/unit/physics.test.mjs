@@ -79,3 +79,15 @@ test('contact separates cars and transfers closing velocity', async () => {
   assert(s[3] < 10);
   assert(s[13] > 0);
 });
+test('car contact triggers for nose-to-tail and side overlap at the rendered hitbox', async () => {
+  const { wasm, state } = await physics();
+  state[0] = 0;
+  state[1] = 0;
+  state[10] = 0;
+  state[11] = 4.5;
+  assert.equal(wasm.resolveCars(), 1);
+  assert(Math.abs(state[11] - state[1]) >= 4.59);
+  state[10] = 2;
+  state[11] = 0;
+  assert.equal(wasm.resolveCars(), 1);
+});
