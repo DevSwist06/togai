@@ -4,6 +4,7 @@
 
 - `src/client/`: browser entry point, deterministic race lifecycle, course/AI, WebGPU renderer. Keep DOM/audio out of simulation modules.
 - `src/client/progression.js`: validated personal course records and first completed briefing state, persisted to a path-scoped browser cookie and kept out of simulation.
+- `src/client/screen-controls.js`: pure mobile touch classification, car-relative brake boundary, and four-field driving input. `src/client/control-preference.js` stores the selected mobile control mode separately from progression.
 - `src/physics/`: AssemblyScript physics compiled to WASM. Document the shared-memory layout and validate exported inputs. Do not add allocations in the physics loop.
 - `src/server/`: loopback static server. Only `dist/` is public; never serve the repository root.
 - `public/`: authored HTML/CSS and static assets. No generated binaries.

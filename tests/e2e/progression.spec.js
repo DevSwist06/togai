@@ -18,8 +18,8 @@ async function controlledFinish(page) {
     const response = await route.fetch();
     const source = (await response.text())
       .replace(
-        'race.tick(readInput(keys, headingAlignedInput(joystickState, joystickHeading)));',
-        `race.tick(readInput(keys, headingAlignedInput(joystickState, joystickHeading)));
+        'race.tick(readInput(keys, mobileInput));',
+        `race.tick(readInput(keys, mobileInput));
       if (race.phase === 'race') {
         race.overtakeTime = window.__winningTime ?? null;
         race.crashReason = window.__winningTime ? null : 'roadside';

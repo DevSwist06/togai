@@ -39,6 +39,7 @@ test('real WebGPU boots without console errors and renders nonempty scene and ma
   await expect(page.locator('.intro-bottom > div:not(.touch-hint)').first()).toBeVisible();
   await expect(page.locator('.intro-bottom > div:not(.touch-hint)').nth(1)).toBeVisible();
   await expect(page.locator('.touch-hint')).toBeHidden();
+  await expect(page.locator('#control-choice')).toBeHidden();
   const image = await page.locator('#game').screenshot();
   expect(image.length).toBeGreaterThan(10_000);
   await page.screenshot({ path: test.info().outputPath('desktop.png') });
@@ -127,8 +128,8 @@ test('clear pass shows five-second confirmation progress and resets when the rac
   await page.route('**/game.js', async (route) => {
     const response = await route.fetch();
     const source = (await response.text()).replace(
-      'race.tick(readInput(keys, headingAlignedInput(joystickState, joystickHeading)));',
-      "race.tick(readInput(keys, headingAlignedInput(joystickState, joystickHeading))); if (race.phase === 'race') race.overtakeDuration = 2.5;",
+      'race.tick(readInput(keys, mobileInput));',
+      "race.tick(readInput(keys, mobileInput)); if (race.phase === 'race') race.overtakeDuration = 2.5;",
     );
     await route.fulfill({ response, body: source });
   });
@@ -145,6 +146,81 @@ test('clear pass shows five-second confirmation progress and resets when the rac
 test.describe('phone controls', () => {
   test.use({ hasTouch: true, isMobile: true, viewport: { width: 390, height: 844 } });
 
+  test('Screen is the default and the mobile choice survives reload', async ({ page }) => {
+    await ready(page);
+    await expect(page.locator('#mode-screen')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('#control-choice')).toBeVisible();
+    await expect(page.locator('#control-instructions')).toContainText('AUTO ACCELERATE');
+    await page.locator('#mode-joystick').click();
+    await page.reload();
+    await expect(page.locator('#start')).toBeEnabled();
+    await expect(page.locator('#mode-joystick')).toHaveAttribute('aria-pressed', 'true');
+    await page.locator('#mode-screen').click();
+    await page.reload();
+    await expect(page.locator('#mode-screen')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('#control-storage')).toBeHidden();
+  });
+
+  test('Screen steering, brake, release, and pause work with real touch', async ({ page }) => {
+    await ready(page);
+    await page.locator('#start').click();
+    await finishBriefing(page);
+    const guide = page.locator('#screen-guide');
+    await expect(guide).toBeVisible();
+    await expect(page.locator('#joystick')).toBeHidden();
+    await expect
+      .poll(() =>
+        guide.evaluate((element) =>
+          Number.parseFloat(element.style.getPropertyValue('--guide-emphasis')),
+        ),
+      )
+      .toBeGreaterThan(0.7);
+    const openingOpacity = await guide.evaluate((element) =>
+      Number.parseFloat(getComputedStyle(element).opacity),
+    );
+    await page.screenshot({ path: test.info().outputPath('screen-controls-countdown.png') });
+    await expect(page.locator('#countdown')).toBeHidden({ timeout: 12_000 });
+    await expect(guide).toBeHidden();
+    expect(
+      await guide.evaluate((element) => Number.parseFloat(getComputedStyle(element).opacity)),
+    ).toBe(0);
+    expect(openingOpacity).toBeGreaterThan(0.7);
+    await expect
+      .poll(async () => Number(await page.locator('#speed').textContent()))
+      .toBeGreaterThan(10);
+    const session = await page.context().newCDPSession(page);
+    const left = { x: 70, y: 280, id: 1 };
+    await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [left] });
+    await expect(guide).toHaveAttribute('data-command', 'left');
+    await session.send('Input.dispatchTouchEvent', {
+      type: 'touchMove',
+      touchPoints: [{ ...left, x: 330, y: 365 }],
+    });
+    await expect(guide).toHaveAttribute('data-command', 'left');
+    await expect(guide).toHaveAttribute('data-drift', 'true');
+    await session.send('Input.dispatchTouchEvent', {
+      type: 'touchMove',
+      touchPoints: [{ ...left, x: 330, y: 305 }],
+    });
+    await expect(guide).toHaveAttribute('data-drift', 'false');
+    await session.send('Input.dispatchTouchEvent', { type: 'touchCancel', touchPoints: [] });
+    await expect(guide).toHaveAttribute('data-command', '');
+    const boundary = await guide.evaluate((element) =>
+      Number.parseFloat(element.style.getPropertyValue('--brake-boundary')),
+    );
+    const brake = { x: 190, y: Math.min(820, boundary + 12), id: 2 };
+    await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [brake] });
+    await expect(guide).toHaveAttribute('data-command', 'brake');
+    await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await expect(guide).toHaveAttribute('data-command', '');
+    await page.locator('#pause').click();
+    await expect(page.locator('#pause-panel')).toBeVisible();
+    await expect(guide).toBeHidden();
+    await page.locator('#resume').click();
+    await expect(guide).toBeHidden();
+    await page.screenshot({ path: test.info().outputPath('screen-controls-portrait.png') });
+  });
+
   test('start screen fits a landscape phone', async ({ page }) => {
     await page.setViewportSize({ width: 844, height: 390 });
     await ready(page);
@@ -154,17 +230,28 @@ test.describe('phone controls', () => {
 
   test('joystick drives, brakes, and releases on cancel, pause, and rotation', async ({ page }) => {
     await ready(page);
+    await page.locator('#mode-joystick').click();
     await expect(page.locator('.touch-hint')).toBeVisible();
     await expect(page.locator('.intro-bottom > div:not(.touch-hint)').first()).toBeHidden();
     await expect(page.locator('.intro-bottom > div:not(.touch-hint)').nth(1)).toBeHidden();
     await expect(page.locator('#start .start-emoji')).toBeVisible();
     await expect(page.locator('#start .start-arrow')).toBeHidden();
     expect(await page.evaluate(() => getComputedStyle(document.body).userSelect)).toBe('none');
+    expect(await page.evaluate(() => getComputedStyle(document.body).webkitUserSelect)).toBe(
+      'none',
+    );
     expect(
       await page.evaluate(() => {
         const selection = new Event('selectstart', { bubbles: true, cancelable: true });
         document.querySelector('#start').dispatchEvent(selection);
         return selection.defaultPrevented;
+      }),
+    ).toBe(true);
+    expect(
+      await page.evaluate(() => {
+        const menu = new Event('contextmenu', { bubbles: true, cancelable: true });
+        document.querySelector('#start').dispatchEvent(menu);
+        return menu.defaultPrevented;
       }),
     ).toBe(true);
     await page.locator('#start').click();
@@ -231,6 +318,21 @@ test.describe('phone controls', () => {
   });
 });
 
+test.describe('tablet controls', () => {
+  test.use({ hasTouch: true, isMobile: true, viewport: { width: 820, height: 1180 } });
+
+  test('Screen mode and the brake guide fit Beaufort on a tablet', async ({ page }) => {
+    await ready(page);
+    await expect(page.locator('#control-choice')).toBeVisible();
+    await page.locator('#course-switch').click();
+    await expect(page.locator('#course-name')).toHaveText('BEAUFORT MOUNTAIN');
+    await page.locator('#start').click();
+    await expect(page.locator('#screen-guide')).toBeVisible();
+    await expect(page.locator('#joystick')).toBeHidden();
+    await page.screenshot({ path: test.info().outputPath('tablet-screen-beaufort.png') });
+  });
+});
+
 test('countdown/race pause, resume, focus loss and audio toggle', async ({ page }) => {
   await ready(page);
   await page.keyboard.press('Enter');
@@ -262,7 +364,7 @@ test('real WASM full race reaches results, garage and replay', async ({ page }) 
     let source = await response.text();
     source = "import { atDistance as testPoint } from './track.js';\n" + source;
     source = source.replace(
-      'race.tick(readInput(keys, headingAlignedInput(joystickState, joystickHeading)));',
+      'race.tick(readInput(keys, mobileInput));',
       `const target = testPoint(s[8] + 13 + s[6] * 0.63); const desired = Math.atan2(target.x - s[0], -(target.y - s[1])); const delta = Math.atan2(Math.sin(desired - s[2]), Math.cos(desired - s[2])); race.tick({throttle:1, steer:Math.max(-1, Math.min(1, delta * 2.7)), brake:0, handbrake:0});`,
     );
     source = source.replace('accumulator += dt;', 'accumulator += 1;');
@@ -287,7 +389,7 @@ test('roadside crash presents the explosion loss result', async ({ page }) => {
   await page.route('**/game.js', async (route) => {
     const response = await route.fetch();
     const source = (await response.text()).replace(
-      'race.tick(readInput(keys, headingAlignedInput(joystickState, joystickHeading)));',
+      'race.tick(readInput(keys, mobileInput));',
       's[9] = 1; race.tick(readInput(keys, joystickState));',
     );
     await route.fulfill({ response, body: source });

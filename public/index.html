@@ -30,6 +30,18 @@
           WARMING UP <span class="start-arrow" aria-hidden="true">↗</span
           ><span class="start-emoji" aria-hidden="true">🏁</span>
         </button>
+        <div
+          id="control-choice"
+          class="control-choice"
+          role="group"
+          aria-label="Mobile driving controls"
+        >
+          <span>DRIVE WITH</span>
+          <button type="button" id="mode-screen" aria-pressed="true">SCREEN</button>
+          <button type="button" id="mode-joystick" aria-pressed="false">JOYSTICK</button>
+          <p id="control-instructions"></p>
+          <p id="control-storage" hidden>Choice lasts for this visit only.</p>
+        </div>
         <button
           type="button"
           id="sound"
@@ -87,9 +99,7 @@
       <div class="intro-bottom">
         <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><span>DRIVE</span></div>
         <div><kbd>SPACE</kbd><span>HANDBRAKE</span></div>
-        <div id="touch-hint" class="touch-hint" hidden>
-          DRAG THE JOYSTICK TO DRIVE. DOWN CORNERS DRIFT.
-        </div>
+        <div id="touch-hint" class="touch-hint" hidden></div>
       </div>
     </main>
     <dialog id="rival-dialogue" aria-labelledby="rival-name" aria-describedby="dialogue-copy">
@@ -146,6 +156,12 @@
       >
         <span id="joystick-knob" aria-hidden="true"></span>
       </button>
+      <div id="screen-guide" aria-hidden="true" hidden>
+        <span class="screen-side screen-left">LEFT</span>
+        <span class="screen-side screen-right">RIGHT</span>
+        <span class="screen-drift">DRIFT</span>
+        <span class="screen-brake">BRAKE BELOW</span>
+      </div>
     </section>
     <div id="countdown" hidden></div>
     <section id="pause-panel" class="modal" hidden>

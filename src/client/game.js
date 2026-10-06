@@ -6,9 +6,42 @@ import { createRenderer, Mesh } from './renderer.js';
 import { DrivingEffects } from './effects.js';
 import { updateCamera } from './camera.js';
 import { followHeading, headingAlignedInput, joystickInput } from './joystick.js';
+import { brakeBoundary, createScreenGestureController } from './screen-controls.js';
+import { createControlPreference } from './control-preference.js';
 const $ = (id) => document.getElementById(id);
 const progression = createProgression(document, window.location);
-$('touch-hint').hidden = !window.matchMedia('(pointer: coarse)').matches || window.innerWidth > 600;
+const coarsePointer = window.matchMedia('(pointer: coarse)');
+const controlPreference = createControlPreference(document, window.location);
+const screenGesture = createScreenGestureController();
+const screenGuide = $('screen-guide');
+let screenBoundary = null;
+function updateControlChoice() {
+  const mode = controlPreference.mode;
+  document.body.dataset.controlMode = mode;
+  $('mode-screen').setAttribute('aria-pressed', String(mode === 'screen'));
+  $('mode-joystick').setAttribute('aria-pressed', String(mode === 'joystick'));
+  $('touch-hint').hidden = !coarsePointer.matches || window.innerWidth > 600;
+  $('touch-hint').textContent =
+    mode === 'screen'
+      ? 'TOUCH LEFT OR RIGHT TO STEER. DRAG DOWN TO DRIFT. TOUCH BELOW THE LINE TO BRAKE.'
+      : 'DRAG THE JOYSTICK TO DRIVE. DOWN CORNERS DRIFT.';
+  $('control-instructions').textContent =
+    mode === 'screen'
+      ? 'AUTO ACCELERATE · TOUCH SIDES TO STEER · DRAG DOWN TO DRIFT · BELOW CAR TO BRAKE'
+      : 'DRAG UP TO ACCELERATE · DOWN TO BRAKE · SIDEWAYS TO STEER · DOWN CORNERS TO DRIFT';
+  $('control-storage').hidden = controlPreference.saved;
+}
+for (const mode of ['screen', 'joystick'])
+  $(`mode-${mode}`).onclick = () => {
+    clearDrivingTouch();
+    controlPreference.setMode(mode);
+    updateControlChoice();
+  };
+coarsePointer.addEventListener('change', () => {
+  clearDrivingTouch();
+  updateControlChoice();
+});
+updateControlChoice();
 const keys = new Set();
 const joystick = $('joystick');
 const knob = $('joystick-knob');
@@ -24,6 +57,17 @@ function clearJoystick() {
   knob.style.transform = '';
   joystick.classList.remove('active');
 }
+function clearScreen() {
+  const pointer = screenGesture.pointer;
+  screenGesture.clear();
+  if (pointer !== null && $('game').hasPointerCapture(pointer))
+    $('game').releasePointerCapture(pointer);
+  delete screenGuide.dataset.command;
+}
+function clearDrivingTouch() {
+  clearJoystick();
+  clearScreen();
+}
 function moveJoystick(event) {
   const bounds = joystick.getBoundingClientRect();
   const radius = (bounds.width - knob.offsetWidth) / 2;
@@ -35,7 +79,14 @@ function moveJoystick(event) {
   knob.style.transform = `translate(${joystickState.x * radius}px, ${joystickState.y * radius}px)`;
 }
 joystick.addEventListener('pointerdown', (event) => {
-  if (joystickPointer !== null || !race || !['race', 'countdown'].includes(race.phase)) return;
+  if (
+    !coarsePointer.matches ||
+    controlPreference.mode !== 'joystick' ||
+    joystickPointer !== null ||
+    !race ||
+    !['race', 'countdown'].includes(race.phase)
+  )
+    return;
   event.preventDefault();
   joystickPointer = event.pointerId;
   joystick.setPointerCapture(event.pointerId);
@@ -52,9 +103,51 @@ for (const name of ['pointerup', 'pointercancel', 'lostpointercapture']) {
     if (event.pointerId === joystickPointer) clearJoystick();
   });
 }
-window.addEventListener('resize', clearJoystick);
+document.addEventListener('pointerdown', (event) => {
+  if (
+    event.pointerType !== 'touch' ||
+    !coarsePointer.matches ||
+    controlPreference.mode !== 'screen' ||
+    !race ||
+    !['race', 'countdown'].includes(race.phase)
+  )
+    return;
+  const target = event.target;
+  const drivingSurface =
+    target instanceof Element &&
+    !target.closest('button, a, dialog, .modal, #intro, #results, #error');
+  if (
+    screenGesture.start(
+      event.pointerId,
+      event.clientX,
+      event.clientY,
+      window.innerWidth,
+      screenBoundary,
+      drivingSurface,
+    )
+  ) {
+    event.preventDefault();
+    $('game').setPointerCapture(event.pointerId);
+  }
+});
+document.addEventListener('pointermove', (event) => {
+  if (event.pointerId !== screenGesture.pointer) return;
+  event.preventDefault();
+  screenGesture.move(event.pointerId, event.clientY);
+});
+for (const name of ['pointerup', 'pointercancel', 'lostpointercapture'])
+  document.addEventListener(name, (event) => {
+    screenGesture.end(event.pointerId);
+  });
+window.addEventListener('resize', () => {
+  clearDrivingTouch();
+  updateControlChoice();
+});
 document.addEventListener('selectstart', (event) => {
-  if (matchMedia('(any-pointer: coarse)').matches) event.preventDefault();
+  if (coarsePointer.matches) event.preventDefault();
+});
+document.addEventListener('contextmenu', (event) => {
+  if (coarsePointer.matches) event.preventDefault();
 });
 let race;
 let camera = { ...course.preview };
@@ -114,7 +207,7 @@ function reset({ briefing = false } = {}) {
   updateJoystickGuide();
   accumulator = 0;
   keys.clear();
-  clearJoystick();
+  clearDrivingTouch();
   effects.reset();
   camera = { x: s[0], y: s[1] + (briefing ? 32 : -30), zoom: 83 };
   document.body.classList.add('playing');
@@ -130,7 +223,7 @@ function pause() {
   if (race.phase === 'race' || race.phase === 'countdown') {
     race.pause();
     keys.clear();
-    clearJoystick();
+    clearDrivingTouch();
     $('pause-panel').hidden = false;
     $('countdown').hidden = true;
   } else if (race.phase === 'paused') {
@@ -204,7 +297,7 @@ $('resume').onclick = pause;
 function backToGarage() {
   race.phase = 'intro';
   keys.clear();
-  clearJoystick();
+  clearDrivingTouch();
   $('results').hidden = true;
   $('hud').hidden = true;
   $('intro').hidden = false;
@@ -264,19 +357,19 @@ window.addEventListener('keydown', (e) => {
 window.addEventListener('keyup', (e) => keys.delete(e.code));
 window.addEventListener('blur', () => {
   keys.clear();
-  clearJoystick();
+  clearDrivingTouch();
   if (race && (race.phase === 'race' || race.phase === 'countdown')) pause();
 });
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
-    clearJoystick();
+    clearDrivingTouch();
     if (race && (race.phase === 'race' || race.phase === 'countdown')) pause();
   }
 });
 function finish() {
   race.phase = 'finished';
   keys.clear();
-  clearJoystick();
+  clearDrivingTouch();
   $('results').hidden = false;
   $('countdown').hidden = true;
   const won = race.won;
@@ -305,7 +398,12 @@ function simulate() {
   const before = race.phase;
   joystickHeading = followHeading(joystickHeading, s?.[2], step);
   updateJoystickGuide();
-  race.tick(readInput(keys, headingAlignedInput(joystickState, joystickHeading)));
+  const mobileInput = coarsePointer.matches
+    ? controlPreference.mode === 'screen'
+      ? screenGesture.input
+      : headingAlignedInput(joystickState, joystickHeading)
+    : headingAlignedInput(joystickState, joystickHeading);
+  race.tick(readInput(keys, mobileInput));
   $('countdown').hidden = !['countdown', 'race'].includes(race.phase) || race.elapsed > 0.6;
   $('countdown').textContent =
     race.phase === 'countdown' ? Math.min(3, Math.ceil(race.count)) : 'GO';
@@ -406,6 +504,25 @@ function frame(now) {
     }
   } else accumulator = 0;
   if (!['intro', 'briefing', 'paused'].includes(race.phase)) updateCamera(camera, s, dt);
+  screenBoundary = brakeBoundary({ y: s[1], heading: s[2] }, camera, window.innerHeight);
+  if (screenBoundary !== null)
+    screenGuide.style.setProperty('--brake-boundary', `${screenBoundary}px`);
+  screenGuide.hidden =
+    !coarsePointer.matches || controlPreference.mode !== 'screen' || race.phase !== 'countdown';
+  screenGuide.style.setProperty(
+    '--guide-emphasis',
+    `${race.phase === 'countdown' ? Math.max(0, Math.min(1, race.count / 3.2)) : 0}`,
+  );
+  const screenInput = screenGesture.input;
+  screenGuide.dataset.drift = String(screenInput.handbrake === 1);
+  screenGuide.style.setProperty('--drag-progress', `${1 - screenInput.throttle}`);
+  screenGuide.dataset.command = screenInput.brake
+    ? 'brake'
+    : screenInput.steer < 0
+      ? 'left'
+      : screenInput.steer > 0
+        ? 'right'
+        : '';
   dynamic.data.length = 0;
   if (race.phase !== 'paused') sceneryTime += dt;
   effects.draw(race.phase === 'paused' ? 0 : dt, race.phase, s, dynamic);
@@ -426,6 +543,7 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 function showError(error) {
+  clearDrivingTouch();
   dialogue.close();
   console.error(error);
   if (race) race.phase = 'error';
