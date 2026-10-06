@@ -196,23 +196,14 @@ test.describe('phone controls', () => {
     expect(
       await page.evaluate(() => getComputedStyle(document.querySelector('#game')).touchAction),
     ).toBe('none');
-    // Gameplay taps must not wait for a cancelable document touchstart handler.
     expect(
       await page.evaluate(() => {
         const touch = new Event('touchstart', { bubbles: true, cancelable: true });
         document.querySelector('#game').dispatchEvent(touch);
         return touch.defaultPrevented;
       }),
-    ).toBe(false);
+    ).toBe(true);
     const session = await page.context().newCDPSession(page);
-    const drivingPointerCanceled = page.evaluate(
-      () =>
-        new Promise((resolve) => {
-          document.addEventListener('pointerdown', (event) => resolve(event.defaultPrevented), {
-            once: true,
-          });
-        }),
-    );
     for (let id = 10; id < 12; id++) {
       await session.send('Input.dispatchTouchEvent', {
         type: 'touchStart',
@@ -220,7 +211,6 @@ test.describe('phone controls', () => {
       });
       await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
     }
-    expect(await drivingPointerCanceled).toBe(false);
     expect(await page.evaluate(() => visualViewport.scale)).toBe(1);
     const left = { x: 70, y: 280, id: 1 };
     await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [left] });
