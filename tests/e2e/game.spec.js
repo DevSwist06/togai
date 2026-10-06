@@ -168,6 +168,11 @@ test.describe('phone controls', () => {
     const guide = page.locator('#screen-guide');
     await expect(guide).toBeVisible();
     await expect(page.locator('#joystick')).toBeHidden();
+    expect(
+      await guide.evaluate((element) =>
+        Number.parseFloat(element.style.getPropertyValue('--brake-boundary')),
+      ),
+    ).toBeGreaterThanOrEqual(844 * 0.8);
     await expect
       .poll(() =>
         guide.evaluate((element) =>
@@ -188,7 +193,25 @@ test.describe('phone controls', () => {
     await expect
       .poll(async () => Number(await page.locator('#speed').textContent()))
       .toBeGreaterThan(10);
+    expect(
+      await page.evaluate(() => getComputedStyle(document.querySelector('#game')).touchAction),
+    ).toBe('none');
+    expect(
+      await page.evaluate(() => {
+        const touch = new Event('touchstart', { bubbles: true, cancelable: true });
+        document.querySelector('#game').dispatchEvent(touch);
+        return touch.defaultPrevented;
+      }),
+    ).toBe(true);
     const session = await page.context().newCDPSession(page);
+    for (let id = 10; id < 12; id++) {
+      await session.send('Input.dispatchTouchEvent', {
+        type: 'touchStart',
+        touchPoints: [{ x: 190, y: 300, id }],
+      });
+      await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    }
+    expect(await page.evaluate(() => visualViewport.scale)).toBe(1);
     const left = { x: 70, y: 280, id: 1 };
     await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [left] });
     await expect(guide).toHaveAttribute('data-command', 'left');

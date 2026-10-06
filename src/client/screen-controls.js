@@ -18,7 +18,8 @@ export function brakeBoundary(car, camera, viewportHeight) {
   const lowerEdge = 3.3 * Math.abs(Math.cos(car.heading)) + 1.8 * Math.abs(Math.sin(car.heading));
   const projected =
     viewportHeight / 2 + ((car.y - camera.y + lowerEdge) * viewportHeight) / (2 * camera.zoom);
-  return Math.max(0, Math.min(viewportHeight - 44, projected + 24));
+  // Keep braking in the bottom fifth, unless the car sits even lower on screen.
+  return Math.max(0, Math.min(viewportHeight - 44, Math.max(projected + 24, viewportHeight * 0.8)));
 }
 
 export function startScreenGesture(x, y, width, boundary) {

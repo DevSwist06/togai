@@ -793,6 +793,10 @@ body.playing .header-label {
 }
 
 @media (pointer: coarse) {
+  html {
+    touch-action: manipulation;
+  }
+
   body {
     /* eslint-disable-next-line css/use-baseline -- The WebGPU game targets Chromium. */
     user-select: none;
@@ -809,6 +813,11 @@ body.playing .header-label {
   }
 
   body.playing {
+    touch-action: none;
+  }
+
+  body.playing #game,
+  body.playing #hud {
     touch-action: none;
   }
 

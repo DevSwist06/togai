@@ -103,6 +103,12 @@ for (const name of ['pointerup', 'pointercancel', 'lostpointercapture']) {
     if (event.pointerId === joystickPointer) clearJoystick();
   });
 }
+function isDrivingSurface(target) {
+  return (
+    target instanceof Element &&
+    !target.closest('button, a, dialog, .modal, #intro, #results, #error')
+  );
+}
 document.addEventListener('pointerdown', (event) => {
   if (
     event.pointerType !== 'touch' ||
@@ -112,10 +118,6 @@ document.addEventListener('pointerdown', (event) => {
     !['race', 'countdown'].includes(race.phase)
   )
     return;
-  const target = event.target;
-  const drivingSurface =
-    target instanceof Element &&
-    !target.closest('button, a, dialog, .modal, #intro, #results, #error');
   if (
     screenGesture.start(
       event.pointerId,
@@ -123,13 +125,29 @@ document.addEventListener('pointerdown', (event) => {
       event.clientY,
       window.innerWidth,
       screenBoundary,
-      drivingSurface,
+      isDrivingSurface(event.target),
     )
   ) {
     event.preventDefault();
     $('game').setPointerCapture(event.pointerId);
   }
 });
+// Safari can still zoom on repeated taps over a game surface despite touch-action.
+// Cancel only driving touches, leaving buttons and menu scrolling alone.
+document.addEventListener(
+  'touchstart',
+  (event) => {
+    if (
+      coarsePointer.matches &&
+      controlPreference.mode === 'screen' &&
+      race &&
+      ['race', 'countdown'].includes(race.phase) &&
+      isDrivingSurface(event.target)
+    )
+      event.preventDefault();
+  },
+  { passive: false },
+);
 document.addEventListener('pointermove', (event) => {
   if (event.pointerId !== screenGesture.pointer) return;
   event.preventDefault();

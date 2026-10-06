@@ -64,9 +64,14 @@ test('invalid gesture geometry safely returns untouched acceleration', () => {
 test('brake boundary projects below the car and leaves a usable bottom zone', () => {
   const camera = { y: 100, zoom: 80 };
   const straight = brakeBoundary({ y: 100, heading: 0 }, camera, 800);
-  assert.equal(straight > 400 + 24, true);
+  assert.equal(straight, 640);
+  assert.equal(brakeBoundary({ y: 160, heading: 0 }, camera, 800) > straight, true);
   assert.equal(brakeBoundary({ y: 200, heading: 0 }, camera, 800), 756);
-  assert.equal(brakeBoundary({ y: -200, heading: 0 }, camera, 800), 0);
-  assert.equal(brakeBoundary({ y: 100, heading: Math.PI / 2 }, camera, 800) < straight, true);
+  assert.equal(brakeBoundary({ y: -200, heading: 0 }, camera, 800), 640);
+  assert.equal(
+    brakeBoundary({ y: 160, heading: Math.PI / 2 }, camera, 800) <
+      brakeBoundary({ y: 160, heading: 0 }, camera, 800),
+    true,
+  );
   assert.equal(brakeBoundary({ y: NaN, heading: 0 }, camera, 800), null);
 });
