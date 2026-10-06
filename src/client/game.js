@@ -109,54 +109,49 @@ function isDrivingSurface(target) {
     !target.closest('button, a, dialog, .modal, #intro, #results, #error')
   );
 }
-document.addEventListener('pointerdown', (event) => {
-  if (
-    event.pointerType !== 'touch' ||
-    !coarsePointer.matches ||
-    controlPreference.mode !== 'screen' ||
-    !race ||
-    !['race', 'countdown'].includes(race.phase)
-  )
-    return;
-  if (
-    screenGesture.start(
-      event.pointerId,
-      event.clientX,
-      event.clientY,
-      window.innerWidth,
-      screenBoundary,
-      isDrivingSurface(event.target),
-    )
-  ) {
-    event.preventDefault();
-    $('game').setPointerCapture(event.pointerId);
-  }
-});
-// Safari can still zoom on repeated taps over a game surface despite touch-action.
-// Cancel only driving touches, leaving buttons and menu scrolling alone.
+// touch-action on the playing surface handles browser gestures without blocking each touchstart.
 document.addEventListener(
-  'touchstart',
+  'pointerdown',
   (event) => {
     if (
-      coarsePointer.matches &&
-      controlPreference.mode === 'screen' &&
-      race &&
-      ['race', 'countdown'].includes(race.phase) &&
-      isDrivingSurface(event.target)
+      event.pointerType !== 'touch' ||
+      !coarsePointer.matches ||
+      controlPreference.mode !== 'screen' ||
+      !race ||
+      !['race', 'countdown'].includes(race.phase)
     )
-      event.preventDefault();
+      return;
+    if (
+      screenGesture.start(
+        event.pointerId,
+        event.clientX,
+        event.clientY,
+        window.innerWidth,
+        screenBoundary,
+        isDrivingSurface(event.target),
+      )
+    ) {
+      $('game').setPointerCapture(event.pointerId);
+    }
   },
-  { passive: false },
+  { passive: true },
 );
-document.addEventListener('pointermove', (event) => {
-  if (event.pointerId !== screenGesture.pointer) return;
-  event.preventDefault();
-  screenGesture.move(event.pointerId, event.clientY);
-});
+document.addEventListener(
+  'pointermove',
+  (event) => {
+    if (event.pointerId !== screenGesture.pointer) return;
+    screenGesture.move(event.pointerId, event.clientY);
+  },
+  { passive: true },
+);
 for (const name of ['pointerup', 'pointercancel', 'lostpointercapture'])
-  document.addEventListener(name, (event) => {
-    screenGesture.end(event.pointerId);
-  });
+  document.addEventListener(
+    name,
+    (event) => {
+      screenGesture.end(event.pointerId);
+    },
+    { passive: true },
+  );
 window.addEventListener('resize', () => {
   clearDrivingTouch();
   updateControlChoice();
