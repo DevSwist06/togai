@@ -8,6 +8,7 @@ import {
   track,
   length,
   surfaces,
+  physicsSurfaces,
   atDistance,
   aiInput,
 } from '../../src/client/track.js';
@@ -188,12 +189,62 @@ test('Beaufort rival shifts away from upcoming snow and ice while staying inside
 test('Beaufort ice hazards load as finite authored surfaces outside the bridge', () => {
   selectCourse('beaufort');
   try {
-    for (const p of surfaces.filter((p) => p.type === 2)) {
+    const ice = surfaces.filter((p) => p.type === 2);
+    assert.equal(new Set(ice.map((p) => p.length)).size, ice.length);
+    assert(physicsSurfaces.length <= 128);
+    for (const p of ice) {
       assert(p.length > 0 && p.width > 0);
       assert(p.d - p.length > 0 && p.d + p.length < length);
       for (const [start, end] of course.bridges)
         assert(p.d + p.length < start || p.d - p.length > end);
       assert(Number.isFinite(p.x) && Number.isFinite(p.y) && Number.isFinite(p.a));
+      const segments = physicsSurfaces.filter((item) => item.sourceD === p.d);
+      assert(segments.length >= 4);
+      for (let d = p.d - p.length + 4; d < p.d + p.length - 3; d += 4) {
+        const road = atDistance(d),
+          x = road.x + Math.cos(road.a) * p.offset,
+          y = road.y + Math.sin(road.a) * p.offset;
+        assert(
+          segments.some((segment) => {
+            const dx = x - segment.x,
+              dy = y - segment.y;
+            return (
+              Math.abs(dx * Math.cos(segment.a) + dy * Math.sin(segment.a)) < segment.width &&
+              Math.abs(-dx * Math.sin(segment.a) + dy * Math.cos(segment.a)) < segment.length
+            );
+          }),
+          `Ice at ${p.d} must stay slippery along the road at ${d}`,
+        );
+      }
+    }
+  } finally {
+    selectCourse('kasumi');
+  }
+});
+
+test('curved Beaufort ice reduces steering at a bend and clears beyond its end', async () => {
+  selectCourse('beaufort');
+  try {
+    const patch = surfaces.find((p) => p.type === 2 && p.d === 2110);
+    const icy = await physics(),
+      dry = await physics();
+    loadCourse(icy.wasm);
+    loadCourse(dry.wasm);
+    dry.wasm.clearSurfaces();
+    for (const d of [patch.d + 12, patch.d + patch.length + 8]) {
+      const road = atDistance(d),
+        x = road.x + Math.cos(road.a) * patch.offset,
+        y = road.y + Math.sin(road.a) * patch.offset;
+      for (const { wasm, state } of [icy, dry]) {
+        wasm.reset(x, y, road.a);
+        state[3] = Math.sin(road.a) * 25;
+        state[4] = -Math.cos(road.a) * 25;
+        wasm.step(0, 1, 1, 0, 0, STEP);
+      }
+      const icyTurn = icy.state[2] - road.a,
+        dryTurn = dry.state[2] - road.a;
+      if (d < patch.d + patch.length) assert(icyTurn < dryTurn * 0.4);
+      else assert(Math.abs(icyTurn - dryTurn) < 0.000001);
     }
   } finally {
     selectCourse('kasumi');

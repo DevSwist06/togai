@@ -38,6 +38,7 @@ export let track;
 export let length;
 export let finishDistance;
 export let surfaces;
+export let physicsSurfaces;
 export function selectCourse(id) {
   if (!Object.hasOwn(courses, id)) throw new Error('Unknown course');
   course = courses[id];
@@ -48,12 +49,36 @@ export function selectCourse(id) {
     const p = atDistance(surface.d);
     return { ...surface, x: p.x + p.nx * surface.offset, y: p.y + p.ny * surface.offset, a: p.a };
   });
+  physicsSurfaces = surfaces.flatMap((surface) => {
+    if (surface.type !== 2 || !course.curvedIce) return [surface];
+    const segments = [];
+    const end = surface.d + surface.length;
+    for (let start = surface.d - surface.length; start < end; start += 8) {
+      const stop = Math.min(start + 8, end);
+      const a = atDistance(start),
+        b = atDistance(stop);
+      const ax = a.x + Math.cos(a.a) * surface.offset,
+        ay = a.y + Math.sin(a.a) * surface.offset,
+        bx = b.x + Math.cos(b.a) * surface.offset,
+        by = b.y + Math.sin(b.a) * surface.offset;
+      segments.push({
+        ...surface,
+        sourceD: surface.d,
+        d: (start + stop) / 2,
+        x: (ax + bx) / 2,
+        y: (ay + by) / 2,
+        a: Math.atan2(bx - ax, -(by - ay)),
+        length: Math.hypot(bx - ax, by - ay) / 2 + 0.45,
+      });
+    }
+    return segments;
+  });
 }
 export function loadCourse(wasm) {
   track.forEach((p, i) => wasm.setPoint(i, p.x, p.y, p.d));
   wasm.clearSurfaces();
   wasm.setCourseSpeed(course.speedMultiplier);
-  surfaces.forEach((p, i) => wasm.setSurface(i, p.x, p.y, p.width, p.length, p.a, p.type));
+  physicsSurfaces.forEach((p, i) => wasm.setSurface(i, p.x, p.y, p.width, p.length, p.a, p.type));
 }
 export function atDistance(d) {
   d = Math.max(0, Math.min(length, d));

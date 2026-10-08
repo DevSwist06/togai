@@ -20,16 +20,16 @@ export function setPoint(i: i32, x: f64, y: f64, d: f64): void {
 }
 // Fixed capacity hazard records: world x/y, patch half-width/length, heading, kind (1 snow, 2 ice).
 // State layout stays at 10 float64 values per car. Reset preserves course hazards.
-const surfaceX = new Float64Array(64);
-const surfaceY = new Float64Array(64);
-const surfaceWidth = new Float64Array(64);
-const surfaceLength = new Float64Array(64);
-const surfaceAngle = new Float64Array(64);
+const surfaceX = new Float64Array(128);
+const surfaceY = new Float64Array(128);
+const surfaceWidth = new Float64Array(128);
+const surfaceLength = new Float64Array(128);
+const surfaceAngle = new Float64Array(128);
 let courseSpeed: f64 = 1.0;
 export function setCourseSpeed(value: f64): void {
   if (isFinite(value) && value >= 1 && value <= 2) courseSpeed = value;
 }
-const surfaceType = new Int32Array(64);
+const surfaceType = new Int32Array(128);
 let surfaceCount: i32 = 0;
 export function clearSurfaces(): void {
   surfaceCount = 0;
@@ -45,7 +45,7 @@ export function setSurface(
 ): void {
   if (
     i < 0 ||
-    i >= 64 ||
+    i >= 128 ||
     i > surfaceCount ||
     !isFinite(x) ||
     !isFinite(y) ||

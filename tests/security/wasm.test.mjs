@@ -31,7 +31,7 @@ test('invalid surface records are rejected without changing motion or allocating
   const { wasm, state } = await physics();
   const control = await physics();
   const bytes = wasm.memory.buffer.byteLength;
-  for (const i of [-1, 1, 64, 2147483647]) wasm.setSurface(i, 0, 0, 20, 30, 0, 2);
+  for (const i of [-1, 1, 128, 2147483647]) wasm.setSurface(i, 0, 0, 20, 30, 0, 2);
   for (const bad of [NaN, Infinity, -Infinity, 10001, -10001]) {
     wasm.setSurface(0, bad, 0, 20, 30, 0, 2);
     wasm.setSurface(0, 0, bad, 20, 30, 0, 2);
@@ -46,5 +46,21 @@ test('invalid surface records are rejected without changing motion or allocating
     control.wasm.step(0, 1, 0, 0, 0, 1 / 120);
   }
   assert.deepEqual([...state], [...control.state]);
+  assert.equal(wasm.memory.buffer.byteLength, bytes);
+});
+
+test('the last supported surface slot loads and the next slot is rejected', async () => {
+  const { wasm, state } = await physics();
+  const dry = await physics();
+  const bytes = wasm.memory.buffer.byteLength;
+  for (let i = 0; i < 127; i++) wasm.setSurface(i, 5000, 5000, 1, 1, 0, 2);
+  wasm.setSurface(127, 0, -50, 4.3, 8, 0, 2);
+  wasm.setSurface(128, 0, -50, 30, 60, 0, 2);
+  for (const run of [{ wasm, state }, dry]) {
+    run.wasm.reset(0, -50, 0);
+    run.state[4] = -25;
+    run.wasm.step(0, 1, 1, 0, 0, 1 / 120);
+  }
+  assert(state[2] < dry.state[2] * 0.4);
   assert.equal(wasm.memory.buffer.byteLength, bytes);
 });

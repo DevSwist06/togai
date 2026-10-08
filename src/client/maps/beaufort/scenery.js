@@ -1,4 +1,4 @@
-import { drawIce, drawSnow } from './surfaces.js';
+import { drawCurvedIce, drawSnow } from './surfaces.js';
 
 function riverY(x, context) {
   const river = context.atDistance(context.course.river.d);
@@ -47,7 +47,7 @@ export function drawRoad(m, { course, atDistance, surfaces, color }) {
     }
   }
   for (const p of surfaces) {
-    if (p.type === 2) drawIce(m, p, color);
+    if (p.type === 2) drawCurvedIce(m, p, atDistance, color);
     else drawSnow(m, p, color);
   }
 }

@@ -44,6 +44,19 @@
         </div>
         <button
           type="button"
+          id="skin-switch"
+          class="skin-choice"
+          aria-label="Switch to Peugeot 206 CC"
+        >
+          <canvas id="skin-preview" width="192" height="144" aria-hidden="true"></canvas>
+          <span
+            ><small>YOUR CAR <span id="skin-number">01 / 02</span></small
+            ><strong id="skin-name">Original coupe</strong><small>CHANGE SKIN ↔</small></span
+          >
+        </button>
+        <p id="skin-storage" hidden>Skin choice lasts for this visit only.</p>
+        <button
+          type="button"
           id="sound"
           class="quiet"
           aria-label="Toggle sound"
