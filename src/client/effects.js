@@ -1,4 +1,5 @@
 import { drawCar, color } from './renderer.js';
+import { CAR_SKINS } from './car-skins.js';
 
 export class DrivingEffects {
   smoke = [];
@@ -26,7 +27,7 @@ export class DrivingEffects {
       });
     }
   }
-  draw(dt, phase, s, dynamic) {
+  draw(dt, phase, s, dynamic, playerSkin = CAR_SKINS[0]) {
     const smoke = this.smoke,
       marks = this.marks,
       sparks = this.sparks;
@@ -57,7 +58,7 @@ export class DrivingEffects {
     }
     if (marks.length > 800) marks.splice(0, marks.length - 800);
     drawCar(dynamic, s[10], s[11], s[12], color('b9d2cd'), s[15]);
-    drawCar(dynamic, s[0], s[1], s[2], color('f88456'), s[5]);
+    playerSkin.draw(dynamic, s[0], s[1], s[2], s[5]);
     for (let i = smoke.length - 1; i >= 0; i--) {
       const p = smoke[i];
       p.life -= dt;

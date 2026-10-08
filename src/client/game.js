@@ -8,8 +8,52 @@ import { updateCamera } from './camera.js';
 import { followHeading, headingAlignedInput, joystickInput } from './joystick.js';
 import { brakeBoundary, createScreenGestureController } from './screen-controls.js';
 import { createControlPreference } from './control-preference.js';
+import { CAR_SKINS } from './car-skins.js';
+import { createSkinPreference } from './skin-preference.js';
 const $ = (id) => document.getElementById(id);
 const progression = createProgression(document, window.location);
+const skinPreference = createSkinPreference(document, window.location);
+function updateSkinChoice() {
+  const skin = skinPreference.skin;
+  const index = CAR_SKINS.indexOf(skin);
+  $('skin-name').textContent = skin.name;
+  $('skin-number').textContent =
+    `${String(index + 1).padStart(2, '0')} / ${String(CAR_SKINS.length).padStart(2, '0')}`;
+  $('skin-switch').setAttribute(
+    'aria-label',
+    `Switch to ${CAR_SKINS[(index + 1) % CAR_SKINS.length].name}`,
+  );
+  $('skin-storage').hidden = skinPreference.saved;
+  document.body.style.setProperty('--player-color', skin.paint);
+  const canvas = $('skin-preview');
+  const ctx = canvas.getContext('2d');
+  const mesh = new Mesh();
+  skin.draw(mesh, 0, 0, -Math.PI / 2);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  // Reuse the racing geometry so the garage preview always matches the car.
+  for (let i = 0; i < mesh.data.length; i += 18) {
+    ctx.beginPath();
+    for (let j = 0; j < 18; j += 6) {
+      const x = canvas.width / 2 + mesh.data[i + j] * 32;
+      const y = canvas.height / 2 + mesh.data[i + j + 1] * 32;
+      if (j === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+    ctx.fillStyle = `rgb(${mesh.data
+      .slice(i + 2, i + 5)
+      .map((v) => Math.round(v * 255))
+      .join(' ')})`;
+    ctx.fill();
+  }
+}
+$('skin-switch').onclick = () => {
+  if (race && race.phase !== 'intro') return;
+  const index = CAR_SKINS.indexOf(skinPreference.skin);
+  skinPreference.select(CAR_SKINS[(index + 1) % CAR_SKINS.length].id);
+  updateSkinChoice();
+};
+updateSkinChoice();
 const coarsePointer = window.matchMedia('(pointer: coarse)');
 const controlPreference = createControlPreference(document, window.location);
 const screenGesture = createScreenGestureController();
@@ -347,7 +391,9 @@ window.addEventListener('keydown', (e) => {
   if (!race || race.phase === 'error' || dialogue.active) return;
   if (
     race.phase === 'intro' &&
-    e.target === $('course-switch') &&
+    e.target instanceof Element &&
+    e.target.closest('button') &&
+    e.target !== $('start') &&
     ['Enter', 'Space'].includes(e.code)
   )
     return;
@@ -491,7 +537,7 @@ function drawMap(canvas, live = false) {
       const [x, y] = project({ x: s[c * 10], y: s[c * 10 + 1] });
       ctx.beginPath();
       ctx.arc(x, y, 3, 0, Math.PI * 2);
-      ctx.fillStyle = c ? '#d3e7e3' : '#f88456';
+      ctx.fillStyle = c ? '#d3e7e3' : skinPreference.skin.paint;
       ctx.fill();
     }
   } else {
@@ -543,7 +589,7 @@ function frame(now) {
         : '';
   dynamic.data.length = 0;
   if (race.phase !== 'paused') sceneryTime += dt;
-  effects.draw(race.phase === 'paused' ? 0 : dt, race.phase, s, dynamic);
+  effects.draw(race.phase === 'paused' ? 0 : dt, race.phase, s, dynamic, skinPreference.skin);
   renderer.draw(camera, dynamic, sceneryTime);
   hudTimer += dt;
   if (hudTimer > 0.075) {
