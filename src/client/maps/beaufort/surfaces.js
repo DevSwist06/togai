@@ -1,4 +1,4 @@
-// Surface art uses the same local half-width and half-length as the WASM hazards.
+// Snow uses local WASM footprints; curved ice samples the same route as its physics segments.
 function point(p, x, y) {
   const c = Math.cos(p.a),
     s = Math.sin(p.a);
@@ -25,70 +25,43 @@ function bevel(w, l, corner) {
     [-w, -l + corner],
   ];
 }
-export function drawIce(m, p, color) {
-  const w = p.width,
-    l = p.length,
-    corner = Math.min(w * 0.22, 1.2);
-  polygon(m, p, bevel(w, l, corner), color('3683a6'));
-  polygon(m, p, bevel(w - 0.24, l - 0.36, corner), color('78c0d4'));
-  // Long, uneven glass panes and a broken white reflection stay inside the bevel.
-  polygon(
-    m,
-    p,
-    [
-      [-w * 0.72, -l * 0.88],
-      [w * 0.2, -l * 0.72],
-      [w * 0.66, l * 0.15],
-      [-w * 0.46, l * 0.1],
-    ],
-    [0.69, 0.91, 0.97, 0.55],
-  );
-  polygon(
-    m,
-    p,
-    [
-      [-w * 0.44, l * 0.18],
-      [w * 0.65, l * 0.23],
-      [w * 0.36, l * 0.86],
-      [-w * 0.65, l * 0.73],
-    ],
-    [0.34, 0.67, 0.82, 0.55],
-  );
-  polygon(
-    m,
-    p,
-    [
-      [-w * 0.75, -l * 0.38],
-      [-w * 0.25, -l * 0.44],
-      [-w * 0.05, l * 0.73],
-      [-w * 0.53, l * 0.64],
-    ],
-    [0.88, 0.97, 1, 0.43],
-  );
-  for (const [a, b] of [
-    [
-      [-w * 0.6, -l * 0.74],
-      [-w * 0.18, -l * 0.51],
-    ],
-    [
-      [-w * 0.18, -l * 0.51],
-      [w * 0.34, -l * 0.57],
-    ],
-    [
-      [w * 0.34, -l * 0.57],
-      [w * 0.58, -l * 0.27],
-    ],
-    [
-      [-w * 0.49, l * 0.32],
-      [w * 0.16, l * 0.24],
-    ],
-    [
-      [w * 0.16, l * 0.24],
-      [w * 0.53, l * 0.5],
-    ],
-  ])
-    stroke(m, p, a, b, 0.16, color('e7fbff'));
-  stroke(m, p, [-w * 0.72, -l * 0.92], [w * 0.4, -l * 0.92], 0.22, color('e9fcff'));
+export function drawCurvedIce(m, patch, atDistance, color) {
+  const start = patch.d - patch.length,
+    end = patch.d + patch.length,
+    corner = Math.min(patch.width * 0.22, 1.2);
+  const distances = [start, start + corner];
+  for (let d = start + corner + 6; d < end - corner; d += 6) distances.push(d);
+  distances.push(end - corner, end);
+  const edge = (d, lateral) => {
+    const p = atDistance(d);
+    const offset = patch.offset + lateral;
+    return [p.x + Math.cos(p.a) * offset, p.y + Math.sin(p.a) * offset];
+  };
+  const widthAt = (index, inset = 0) =>
+    patch.width - inset - (index === 0 || index === distances.length - 1 ? corner : 0);
+  for (let i = 1; i < distances.length; i++) {
+    const a = distances[i - 1],
+      b = distances[i],
+      aw = widthAt(i - 1),
+      bw = widthAt(i);
+    m.quad(edge(a, -aw), edge(b, -bw), edge(b, bw), edge(a, aw), color('3683a6'));
+    m.quad(
+      edge(a, -widthAt(i - 1, 0.24)),
+      edge(b, -widthAt(i, 0.24)),
+      edge(b, widthAt(i, 0.24)),
+      edge(a, widthAt(i - 1, 0.24)),
+      color('78c0d4'),
+    );
+    // Irregular translucent panes and short reflections bend with the route.
+    m.quad(
+      edge(a, -aw * 0.65),
+      edge(b, -bw * 0.42),
+      edge(b, bw * 0.18),
+      edge(a, aw * 0.05),
+      i % 2 ? [0.69, 0.91, 0.97, 0.55] : [0.34, 0.67, 0.82, 0.55],
+    );
+    if (i % 2 === 0) m.line(...edge(b, -bw * 0.56), ...edge(b, bw * 0.3), 0.16, color('e7fbff'));
+  }
 }
 function mound(m, p, x, y, w, l, color) {
   polygon(

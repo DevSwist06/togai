@@ -4,7 +4,7 @@ import { Mesh, color, scenery } from '../../src/client/renderer.js';
 import { selectCourse, atDistance, course } from '../../src/client/track.js';
 import { drawDetails } from '../../src/client/maps/beaufort/scenery.js';
 import { drawFir } from '../../src/client/maps/beaufort/forest.js';
-import { drawIce, drawSnow } from '../../src/client/maps/beaufort/surfaces.js';
+import { drawCurvedIce, drawSnow } from '../../src/client/maps/beaufort/surfaces.js';
 import { waterFragment } from '../../src/client/maps/beaufort/water.js';
 
 test('fir canopies stay compact and grounded, with pointed green branches and snow caps', () => {
@@ -29,7 +29,7 @@ test('fir canopies stay compact and grounded, with pointed green branches and sn
     }
 });
 
-test('four alternating snow designs and beveled glass ice stay finite inside their footprints', () => {
+test('four alternating snow designs stay finite inside their footprints', () => {
   const p = { x: 30, y: -50, a: Math.PI / 3, width: 5.8, length: 9 };
   const variants = [];
   for (let variant = 0; variant < 4; variant++) {
@@ -46,19 +46,50 @@ test('four alternating snow designs and beveled glass ice stay finite inside the
     }
   }
   assert.equal(new Set(variants).size, 4);
-  const ice = new Mesh();
-  drawIce(ice, { ...p, width: 4.3, length: 25 }, color);
-  assert(ice.data.length > 0 && ice.data.length < 1500);
-  assert(ice.data.every(Number.isFinite));
-  assert(
-    ice.data.some((v, i) => i % 6 === 5 && v < 1),
-    'Translucent glass facets',
-  );
-  for (let i = 0; i < ice.data.length; i += 6) {
-    const dx = ice.data[i] - p.x,
-      dy = ice.data[i + 1] - p.y;
-    assert(Math.abs(dx * Math.cos(p.a) + dy * Math.sin(p.a)) < 4.31);
-    assert(Math.abs(-dx * Math.sin(p.a) + dy * Math.cos(p.a)) < 25.01);
+});
+
+test('a long ice mesh follows a Beaufort bend within its authored lane and length', () => {
+  selectCourse('beaufort');
+  try {
+    const patch = course.surfaces.find((p) => p.type === 2 && p.d === 2110);
+    const mesh = new Mesh();
+    drawCurvedIce(mesh, patch, atDistance, color);
+    assert(mesh.data.length > 0 && mesh.data.length < 5000);
+    assert(mesh.data.every(Number.isFinite));
+    assert(
+      mesh.data.some((value, i) => i % 6 === 5 && value < 1),
+      'Translucent glass facets',
+    );
+    const centerline = [];
+    for (let d = patch.d - patch.length; d <= patch.d + patch.length; d += 0.5) {
+      const road = atDistance(d);
+      centerline.push([
+        road.x + Math.cos(road.a) * patch.offset,
+        road.y + Math.sin(road.a) * patch.offset,
+      ]);
+    }
+    for (let i = 0; i < mesh.data.length; i += 6) {
+      const x = mesh.data[i],
+        y = mesh.data[i + 1];
+      assert(
+        centerline.some(([cx, cy]) => Math.hypot(x - cx, y - cy) < patch.width + 0.6),
+        'Visible ice must remain inside the curved lane',
+      );
+    }
+    for (const d of [patch.d - patch.length, patch.d, patch.d + patch.length]) {
+      const road = atDistance(d),
+        x = road.x + Math.cos(road.a) * patch.offset,
+        y = road.y + Math.sin(road.a) * patch.offset;
+      assert(
+        mesh.data.some(
+          (value, i) =>
+            i % 6 === 0 && Math.hypot(value - x, mesh.data[i + 1] - y) < patch.width + 0.6,
+        ),
+        `Visible ice must cover route distance ${d}`,
+      );
+    }
+  } finally {
+    selectCourse('kasumi');
   }
 });
 

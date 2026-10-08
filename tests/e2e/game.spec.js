@@ -755,6 +755,13 @@ test('Beaufort firs, caustic river and half-road ice render on desktop and compa
   await page.screenshot({ path: test.info().outputPath('beaufort-bridge-compact.png') });
   await page.evaluate(() => window.__viewCourse(350));
   await page.screenshot({ path: test.info().outputPath('beaufort-ice-snow.png') });
+  await page.evaluate(() => window.__viewCourse(930));
+  const curvedIce = await page.locator('#game').screenshot();
+  expect(curvedIce.length).toBeGreaterThan(10_000);
+  await page.screenshot({ path: test.info().outputPath('beaufort-curved-ice-compact.png') });
+  await page.setViewportSize({ width: 1440, height: 950 });
+  await page.evaluate(() => window.__viewCourse(2110));
+  await page.screenshot({ path: test.info().outputPath('beaufort-curved-ice-desktop.png') });
   await page.evaluate(() => {
     window.__viewCourse(90);
     window.__pauseView();
