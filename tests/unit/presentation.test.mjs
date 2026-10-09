@@ -28,6 +28,7 @@ test('drifting creates finite smoke/trails with bounded storage and reset clears
     fx.draw(1 / 30, 'race', s, mesh);
     assert(fx.marks.length <= 800);
     assert(fx.smoke.length <= 150);
+    assert(fx.snow.length <= 220);
   }
   assert(fx.smoke.length > 0);
   assert(fx.marks.length > 0);
@@ -41,6 +42,7 @@ test('drifting creates finite smoke/trails with bounded storage and reset clears
   assert.equal(fx.smoke.length, 0);
   assert.equal(fx.marks.length, 0);
   assert.equal(fx.sparks.length, 0);
+  assert.equal(fx.snow.length, 0);
 });
 test('foreground drift smoke becomes more transparent as it disperses', () => {
   const fx = new DrivingEffects(),
@@ -84,6 +86,27 @@ test('stationary/gripping cars produce no drift effects and particles expire', (
   fx.draw(8, 'race', s, mesh);
   assert.equal(fx.smoke.length, 0);
   assert.equal(fx.marks.length, 0);
+});
+test('snow spray emits only on snow surfaces, scales with speed, and fades after leaving', () => {
+  const fx = new DrivingEffects({
+      getSurfaces: () => [{ type: 1, x: 0, y: 0, a: 0, width: 8, length: 10 }],
+    }),
+    mesh = new Mesh(),
+    s = new Float64Array(20);
+  s[6] = 4;
+  fx.draw(0.05, 'race', s, mesh);
+  const slow = fx.snow.length;
+  assert(slow > 0);
+  s[6] = 30;
+  for (let i = 0; i < 4; i++) fx.draw(0.05, 'race', s, mesh);
+  assert(fx.snow.length > slow);
+  const beforeLeaving = fx.snow.length;
+  s[0] = 50;
+  s[1] = 50;
+  fx.draw(0.1, 'race', s, mesh);
+  assert(fx.snow.length <= beforeLeaving);
+  for (let i = 0; i < 20; i++) fx.draw(0.1, 'race', s, mesh);
+  assert.equal(fx.snow.length, 0);
 });
 test('camera eases toward the car, looks ahead and widens at speed', () => {
   const camera = { x: 0, y: 0, zoom: 83 },

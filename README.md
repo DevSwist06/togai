@@ -69,7 +69,7 @@ tests/security/   HTTP attack, WASM input, source policy checks
 dist/             Generated output; never commit
 ```
 
-The renderer uploads scenery once per course selection and uses two draw calls on Kasumi and four on Beaufort (terrain, procedural water, road/scenery, and dynamic effects), a reusable dynamic GPU buffer, bounded translucent foreground smoke, trail, and crash-spark effects, and a 1.5 device-pixel-ratio cap. The authored road continues past both the logical start and finish along their tangent, so the shoulders, markings, and guardrails do not end abruptly in view. Smoke drifts over cars without hiding them completely. The HUD updates independently of physics. Shared WASM memory avoids state serialization. The server and browser have no runtime npm dependencies.
+The renderer uploads scenery once per course selection and uses two draw calls on Kasumi and four on Beaufort (terrain, procedural water, road/scenery, and dynamic effects), a reusable dynamic GPU buffer, bounded translucent foreground smoke, snow spray over snowbank surfaces, trail, and crash-spark effects, and a 1.5 device-pixel-ratio cap. The authored road continues past both the logical start and finish along their tangent, so the shoulders, markings, and guardrails do not end abruptly in view. Smoke drifts over cars without hiding them completely. The HUD updates independently of physics. Shared WASM memory avoids state serialization. The server and browser have no runtime npm dependencies.
 
 ## Quality gate
 
