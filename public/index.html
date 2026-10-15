@@ -21,11 +21,16 @@
     <main id="intro">
       <div class="intro-copy">
         <div class="eyebrow"><span class="orange-line"></span> ONE MOUNTAIN. ONE TARGET.</div>
-        <h1>TAKE THE<br /><em>LEAD.</em></h1>
-        <p>
-          Your rival starts ahead. Late brakes. Loose rear.<br />Get fully past and hold the lead
-          for five seconds.
+        <h1 id="intro-title">TAKE THE<br /><em>LEAD.</em></h1>
+        <p id="mode-description">
+          Your rival starts ahead. Late brakes. Loose rear. Get fully past and hold the lead for
+          five seconds.
         </p>
+        <div id="game-mode-choice" class="game-mode-choice" role="group" aria-label="Game mode">
+          <span>GAME MODE</span>
+          <button type="button" id="mode-takeover" aria-pressed="true">TAKEOVER</button>
+          <button type="button" id="mode-clock" aria-pressed="false">RACE AGAINST THE CLOCK</button>
+        </div>
         <button type="button" id="start" class="primary" disabled>
           WARMING UP <span class="start-arrow" aria-hidden="true">↗</span
           ><span class="start-emoji" aria-hidden="true">🏁</span>
@@ -68,19 +73,17 @@
       </div>
       <aside class="brief">
         <div class="eyebrow course-switcher">
-          <span>01 / THE COURSE</span>
-          <button
-            type="button"
-            id="course-switch"
-            disabled
-            aria-label="Switch to Beaufort Mountain"
-          >
-            BEAUFORT MOUNTAIN ↗
-          </button>
+          <span id="course-position">01 / THE COURSE</span>
+          <div class="course-navigation" role="group" aria-label="Course navigation">
+            <button type="button" id="course-previous" disabled aria-label="No previous course">
+              &lt;
+            </button>
+            <button type="button" id="course-next" disabled aria-label="Next course">&gt;</button>
+          </div>
         </div>
         <h2 id="course-name">KASUMI PASS</h2>
         <p id="course-hint" class="course-hint">Dry asphalt. Fast corners. A clean pass.</p>
-        <div class="tags"><span>DOWNHILL</span><span>OVERTAKE</span></div>
+        <div class="tags"><span>DOWNHILL</span><span id="mode-tag">OVERTAKE</span></div>
         <canvas
           role="img"
           id="preview-map"
@@ -94,19 +97,10 @@
           <div><strong id="course-time">~70</strong><small>SECONDS</small></div>
         </div>
         <div id="course-weather" class="brief-bottom">DRY ASPHALT / CLEAR</div>
-        <section id="leaderboard" class="leaderboard" aria-labelledby="leaderboard-title">
+        <section id="best-time" class="best-time" aria-labelledby="leaderboard-title">
           <h3 id="leaderboard-title">YOUR LEADERBOARD</h3>
-          <p id="record-status">FASTEST WINNING TIMES</p>
-          <table>
-            <thead>
-              <tr>
-                <th scope="col">RACE</th>
-                <th scope="col">BEST TIME</th>
-              </tr>
-            </thead>
-            <tbody id="leaderboard-rows"></tbody>
-          </table>
-          <p id="progress-note"></p>
+          <span>BEST TIME</span><strong id="best-time-score">No winning run yet</strong>
+          <p id="progress-note">Personal records · saved on this browser.</p>
         </section>
       </aside>
       <div class="intro-bottom">
@@ -137,8 +131,8 @@
           <small>POSITION</small><strong id="position">2<span>/ 2</span></strong>
         </div>
         <div class="time">
-          <small>RACE TIME</small><strong id="timer">00:00.000</strong
-          ><span id="gap">SIDE BY SIDE</span>
+          <small id="timer-label">RACE TIME</small><strong id="timer">00:00.000</strong
+          ><span id="gap">SIDE BY SIDE</span><span id="clock-best" hidden>NO PERSONAL BEST</span>
           <div id="pass-confirmation" class="pass-confirmation" hidden>
             <div><span>PASS CONFIRMED IN</span><b id="pass-time">5.0 S</b></div>
             <progress id="pass-progress" max="5" value="0" aria-label="Pass confirmation progress">
@@ -151,7 +145,9 @@
         <div><span id="route-name">KASUMI PASS</span><b id="percent">0%</b></div>
         <div class="progress"><i id="progress"></i></div>
         <canvas role="img" id="minimap" width="200" height="160" aria-label="Live race map"></canvas
-        ><span class="map-legend"><i></i> YOU <i></i> RIVAL</span>
+        ><span class="map-legend"
+          ><i></i> YOU <span class="rival-legend"><i></i> RIVAL</span></span
+        >
       </div>
       <div class="speed">
         <div><strong id="speed">0</strong><span>KM/H</span></div>

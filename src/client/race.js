@@ -1,6 +1,7 @@
 import { aiInput, finishDistance, track } from './track.js';
 export const STEP = 1 / 120;
 export { finishDistance as FINISH_DISTANCE } from './track.js';
+export const GAME_MODES = Object.freeze({ TAKEOVER: 'takeover', CLOCK: 'clock' });
 // A car length of clearance means the player's rear axle is ahead of the rival.
 export const OVERTAKE_CLEARANCE = 3.1;
 export const OVERTAKE_CONFIRM_TIME = 5;
@@ -34,11 +35,15 @@ export class Race {
   overtakeTime = null;
   rivalFinish = null;
   crashReason = null;
-  constructor(wasm, state) {
+  finishTime = null;
+  mode = GAME_MODES.TAKEOVER;
+  constructor(wasm, state, mode = GAME_MODES.TAKEOVER) {
     this.wasm = wasm;
     this.state = state;
+    this.mode = Object.values(GAME_MODES).includes(mode) ? mode : GAME_MODES.TAKEOVER;
   }
-  reset({ briefing = false } = {}) {
+  reset({ briefing = false, mode = this.mode } = {}) {
+    this.mode = Object.values(GAME_MODES).includes(mode) ? mode : GAME_MODES.TAKEOVER;
     this.wasm.reset(track[0].x, track[0].y, track[0].a);
     this.elapsed = 0;
     this.count = 3.2;
@@ -47,6 +52,7 @@ export class Race {
     this.overtakeTime = null;
     this.rivalFinish = null;
     this.crashReason = null;
+    this.finishTime = null;
     this.phase = briefing ? 'briefing' : 'countdown';
   }
   startCountdown() {
@@ -61,7 +67,7 @@ export class Race {
     if (this.phase === 'paused') this.phase = this.previousPhase;
   }
   get won() {
-    return this.overtakeTime !== null;
+    return this.mode === GAME_MODES.CLOCK ? this.finishTime !== null : this.overtakeTime !== null;
   }
   tick(input) {
     if (this.phase === 'countdown') {
@@ -73,6 +79,19 @@ export class Race {
     this.elapsed += STEP;
     const { throttle, steer, brake, handbrake } = input;
     this.wasm.step(0, throttle, steer, brake, handbrake, STEP);
+    if (this.mode === GAME_MODES.CLOCK) {
+      if (this.state[9] > 0) {
+        this.crashReason = 'roadside';
+        this.phase = 'finished';
+        return;
+      }
+      if (this.state[6] > 8 && Math.abs(this.state[7]) > 0.085) this.driftTime += STEP;
+      if (this.state[8] >= finishDistance) {
+        this.finishTime = this.elapsed;
+        this.phase = 'finished';
+      }
+      return;
+    }
     const ai = aiInput(this.state);
     this.wasm.step(
       1,

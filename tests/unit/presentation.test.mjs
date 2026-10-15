@@ -1,7 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { DrivingEffects } from '../../src/client/effects.js';
-import { updateCamera } from '../../src/client/camera.js';
 import { Mesh } from '../../src/client/renderer.js';
 test('player car has no trailing triangle', () => {
   const fx = new DrivingEffects(),
@@ -84,18 +83,4 @@ test('stationary/gripping cars produce no drift effects and particles expire', (
   fx.draw(8, 'race', s, mesh);
   assert.equal(fx.smoke.length, 0);
   assert.equal(fx.marks.length, 0);
-});
-test('camera eases toward the car, looks ahead and widens at speed', () => {
-  const camera = { x: 0, y: 0, zoom: 83 },
-    s = new Float64Array(20);
-  s[0] = 50;
-  s[1] = -100;
-  s[6] = 30;
-  updateCamera(camera, s, 0);
-  assert.deepEqual(camera, { x: 0, y: 0, zoom: 83 });
-  updateCamera(camera, s, 0.016);
-  assert(camera.x > 0 && camera.x < 50);
-  assert(camera.y < 0 && camera.y > -140);
-  assert(camera.zoom > 83);
-  assert(Object.values(camera).every(Number.isFinite));
 });

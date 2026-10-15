@@ -27,7 +27,7 @@ export class DrivingEffects {
       });
     }
   }
-  draw(dt, phase, s, dynamic, playerSkin = CAR_SKINS[0]) {
+  draw(dt, phase, s, dynamic, playerSkin = CAR_SKINS[0], showRival = true) {
     const smoke = this.smoke,
       marks = this.marks,
       sparks = this.sparks;
@@ -35,7 +35,7 @@ export class DrivingEffects {
     this.emission += dt;
     if (this.emission > 1 / 30 && phase === 'race') {
       this.emission = 0;
-      for (let c = 0; c < 2; c++) {
+      for (let c = 0; c < (showRival ? 2 : 1); c++) {
         const k = c * 10;
         if (s[k + 6] < 7 || Math.abs(s[k + 7]) < 0.065) continue;
         for (const side of [-1, 1]) {
@@ -57,7 +57,7 @@ export class DrivingEffects {
       dynamic.rect(p.x, p.y, 0.25, 1, p.a, [0.17, 0.21, 0.18]);
     }
     if (marks.length > 800) marks.splice(0, marks.length - 800);
-    drawCar(dynamic, s[10], s[11], s[12], color('b9d2cd'), s[15]);
+    if (showRival) drawCar(dynamic, s[10], s[11], s[12], color('b9d2cd'), s[15]);
     playerSkin.draw(dynamic, s[0], s[1], s[2], s[5]);
     for (let i = smoke.length - 1; i >= 0; i--) {
       const p = smoke[i];

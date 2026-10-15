@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   Race,
+  GAME_MODES,
   STEP,
   FINISH_DISTANCE,
   OVERTAKE_CLEARANCE,
@@ -122,6 +123,32 @@ test('rival and roadside contact immediately end the run as crashes', async () =
   assert.equal(r.phase, 'finished');
   assert.equal(r.crashReason, 'roadside');
   assert.equal(r.won, false);
+});
+test('clock mode finishes at the line, ignores the rival and fails on the same roadside signal', async () => {
+  const r = await setup();
+  const realWasm = r.wasm;
+  r.reset({ mode: GAME_MODES.CLOCK });
+  r.phase = 'race';
+  r.wasm = { step() {}, resolveCars: () => 1 };
+  r.state[8] = FINISH_DISTANCE;
+  r.tick(idle);
+  assert.equal(r.phase, 'finished');
+  assert.equal(r.won, true);
+  assert.equal(r.finishTime, STEP);
+  assert.equal(r.crashReason, null);
+  const time = r.elapsed;
+  r.tick(idle);
+  assert.equal(r.elapsed, time);
+  r.wasm = realWasm;
+  r.reset({ mode: GAME_MODES.CLOCK });
+  r.phase = 'race';
+  r.wasm = { step() {}, resolveCars: () => 0 };
+  r.state[9] = 1;
+  r.tick(idle);
+  assert.equal(r.phase, 'finished');
+  assert.equal(r.won, false);
+  assert.equal(r.finishTime, null);
+  assert.equal(r.crashReason, 'roadside');
 });
 test('a clear pass must hold for five uninterrupted seconds before it wins', async () => {
   const r = await setup();

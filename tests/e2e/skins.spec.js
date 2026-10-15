@@ -61,7 +61,7 @@ test('garage selection previews, persists and renders the Peugeot through course
   await expect.poll(() => redBodyPixels(page)).toBeGreaterThan(0);
   await page.keyboard.press('Escape');
   await expect(page.locator('#skin-name')).toHaveText('Peugeot 206 CC');
-  await page.locator('#course-switch').click();
+  await page.locator('#course-next').click();
   await expect(page.locator('#start')).toBeEnabled();
   await page.locator('#start').click();
   await page.keyboard.press('Escape');
@@ -99,10 +99,9 @@ test('garage selection previews, persists and renders the Peugeot through course
 test('malformed skin cookie falls back and blocked storage keeps the selected skin playable', async ({
   page,
   context,
+  baseURL,
 }) => {
-  await context.addCookies([
-    { name: 'togai_skin', value: '%invalid<img>', url: 'http://127.0.0.1:5187' },
-  ]);
+  await context.addCookies([{ name: 'togai_skin', value: '%invalid<img>', url: baseURL }]);
   await ready(page);
   await expect(page.locator('#skin-name')).toHaveText('Original coupe');
   await expect(page.locator('#skin-switch img')).toHaveCount(0);
