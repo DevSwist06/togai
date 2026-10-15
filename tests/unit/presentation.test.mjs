@@ -27,6 +27,7 @@ test('drifting creates finite smoke/trails with bounded storage and reset clears
     fx.draw(1 / 30, 'race', s, mesh);
     assert(fx.marks.length <= 800);
     assert(fx.smoke.length <= 150);
+    assert(fx.snow.length <= 220);
   }
   assert(fx.smoke.length > 0);
   assert(fx.marks.length > 0);
@@ -40,6 +41,7 @@ test('drifting creates finite smoke/trails with bounded storage and reset clears
   assert.equal(fx.smoke.length, 0);
   assert.equal(fx.marks.length, 0);
   assert.equal(fx.sparks.length, 0);
+  assert.equal(fx.snow.length, 0);
 });
 test('foreground drift smoke becomes more transparent as it disperses', () => {
   const fx = new DrivingEffects(),
@@ -83,4 +85,75 @@ test('stationary/gripping cars produce no drift effects and particles expire', (
   fx.draw(8, 'race', s, mesh);
   assert.equal(fx.smoke.length, 0);
   assert.equal(fx.marks.length, 0);
+});
+test('snow spray emits only on snow surfaces, scales with speed, and fades after leaving', () => {
+  const fx = new DrivingEffects({
+      getSurfaces: () => [{ type: 1, x: 0, y: 0, a: 0, width: 8, length: 10 }],
+    }),
+    mesh = new Mesh(),
+    s = new Float64Array(20);
+  s[6] = 4;
+  fx.draw(0.05, 'race', s, mesh);
+  const slow = fx.snow.length;
+  assert(slow > 0);
+  s[6] = 30;
+  for (let i = 0; i < 4; i++) fx.draw(0.05, 'race', s, mesh);
+  assert(fx.snow.length > slow);
+  const beforeLeaving = fx.snow.length;
+  s[0] = 50;
+  s[1] = 50;
+  fx.draw(0.1, 'race', s, mesh);
+  assert(fx.snow.length <= beforeLeaving);
+  for (let i = 0; i < 20; i++) fx.draw(0.1, 'race', s, mesh);
+  assert.equal(fx.snow.length, 0);
+});
+test('solo racing keeps player effects and suppresses rival geometry, drift and snow spray', () => {
+  for (const showRival of [false, true]) {
+    for (const playerOnSnow of [false, true]) {
+      const fx = new DrivingEffects({
+          getSurfaces: () => [
+            { type: 1, x: 30, y: 0, a: 0, width: 8, length: 10 },
+            ...(playerOnSnow ? [{ type: 1, x: -30, y: 0, a: 0, width: 8, length: 10 }] : []),
+          ],
+        }),
+        mesh = new Mesh(),
+        s = new Float64Array(20);
+      s[0] = -30;
+      s[10] = 30;
+      s[6] = s[16] = 30;
+      s[7] = s[17] = 0.2;
+      fx.draw(0.05, 'race', s, mesh, undefined, showRival);
+      assert.equal(
+        fx.snow.some((p) => p.x < 0),
+        playerOnSnow,
+        'Player spray follows snow contact',
+      );
+      assert.equal(
+        fx.snow.some((p) => p.x > 0),
+        showRival,
+        'Only an active rival sprays snow',
+      );
+      for (const particles of [fx.smoke, fx.marks]) {
+        assert(
+          particles.some((p) => p.x < 0),
+          'Player drift effects remain visible',
+        );
+        assert.equal(
+          particles.some((p) => p.x > 0),
+          showRival,
+          'Only an active rival leaves drift effects',
+        );
+      }
+      const positions = mesh.data.filter((_, i) => i % 6 === 0);
+      assert(
+        positions.some((x) => x < -20),
+        'Player geometry remains visible',
+      );
+      assert.equal(
+        positions.some((x) => x > 20),
+        showRival,
+        'Only an active rival is drawn',
+      );
+    }
+  }
 });
