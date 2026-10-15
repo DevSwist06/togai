@@ -1,7 +1,8 @@
 import { createDialogue } from './dialogue.js';
-import { COURSES, createProgression } from './progression.js';
-import { track, length, course, courses, selectCourse, loadCourse } from './track.js';
-import { Race, STEP as step, readInput, formatTime as fmt } from './race.js';
+import { createProgression } from './progression.js';
+import { createClockProgress } from './clock-progress.js';
+import { track, length, course, courses, selectCourse, loadCourse, atDistance } from './track.js';
+import { GAME_MODES, Race, STEP as step, readInput, formatTime as fmt } from './race.js';
 import { createRenderer, Mesh } from './renderer.js';
 import { DrivingEffects } from './effects.js';
 import { updateCamera } from './camera.js';
@@ -10,9 +11,12 @@ import { brakeBoundary, createScreenGestureController } from './screen-controls.
 import { createControlPreference } from './control-preference.js';
 import { CAR_SKINS } from './car-skins.js';
 import { createSkinPreference } from './skin-preference.js';
+import { createGhostRecorder, interpolateGhost } from './time-trial.js';
 const $ = (id) => document.getElementById(id);
 const progression = createProgression(document, window.location);
+const clockProgress = createClockProgress(document, window.location);
 const skinPreference = createSkinPreference(document, window.location);
+const courseOrder = [course, ...Object.values(courses).filter((entry) => entry !== course)];
 function updateSkinChoice() {
   const skin = skinPreference.skin;
   const index = CAR_SKINS.indexOf(skin);
@@ -54,6 +58,32 @@ $('skin-switch').onclick = () => {
   updateSkinChoice();
 };
 updateSkinChoice();
+let gameMode = GAME_MODES.TAKEOVER;
+function isClock() {
+  return gameMode === GAME_MODES.CLOCK;
+}
+function updateGameModeChoice() {
+  const clock = isClock();
+  $('mode-takeover').setAttribute('aria-pressed', String(!clock));
+  $('mode-clock').setAttribute('aria-pressed', String(clock));
+  $('intro-title').innerHTML = clock
+    ? 'RACE THE<br /><em>CLOCK.</em>'
+    : 'TAKE THE<br /><em>LEAD.</em>';
+  $('mode-description').textContent = clock
+    ? 'One clean run. Cross the finish in the shortest possible time.'
+    : 'Your rival starts ahead. Late brakes. Loose rear. Get fully past and hold the lead for five seconds.';
+  $('mode-tag').textContent = clock ? 'TIME TRIAL' : 'OVERTAKE';
+  $('timer-label').textContent = clock ? 'RUN TIME' : 'RACE TIME';
+  $('clock-best').hidden = !clock;
+  document.body.dataset.gameMode = gameMode;
+  updateBestTime();
+}
+for (const mode of [GAME_MODES.TAKEOVER, GAME_MODES.CLOCK])
+  $(`mode-${mode}`).onclick = () => {
+    if (race && race.phase !== 'intro') return;
+    gameMode = mode;
+    updateGameModeChoice();
+  };
 const coarsePointer = window.matchMedia('(pointer: coarse)');
 const controlPreference = createControlPreference(document, window.location);
 const screenGesture = createScreenGestureController();
@@ -212,6 +242,8 @@ document.addEventListener('contextmenu', (event) => {
   if (coarsePointer.matches) event.preventDefault();
 });
 let race;
+let ghost = null;
+const ghostRecorder = createGhostRecorder();
 let camera = { ...course.preview };
 let sceneryTime = 0;
 let wasm,
@@ -264,14 +296,16 @@ function soundUpdate() {
   audio.filter.frequency.setTargetAtTime(220 + (s?.[6] || 0) * 12, audio.context.currentTime, 0.1);
 }
 function reset({ briefing = false } = {}) {
-  race.reset({ briefing });
+  race.reset({ briefing, mode: gameMode });
+  ghost = isClock() ? clockProgress.ghost(course.id) : null;
+  ghostRecorder.reset(s);
   joystickHeading = s[2];
   updateJoystickGuide();
   accumulator = 0;
   keys.clear();
   clearDrivingTouch();
   effects.reset();
-  camera = { x: s[0], y: s[1] + (briefing ? 32 : -30), zoom: 83 };
+  camera = { x: s[0], y: s[1] + (briefing ? 32 : -30), zoom: 75 };
   document.body.classList.add('playing');
   $('intro').hidden = true;
   $('hud').hidden = briefing;
@@ -308,7 +342,7 @@ const dialogue = createDialogue(
 );
 function startBriefing() {
   setSound(soundOn);
-  const briefing = course.briefing && !progression.introSeen;
+  const briefing = !isClock() && course.briefing && !progression.introSeen;
   reset({ briefing });
   if (briefing) dialogue.open();
 }
@@ -323,35 +357,51 @@ function updateCourseDetails() {
   $('course-time').textContent = course.time;
   $('course-weather').textContent = course.weather;
   $('course-hint').textContent = course.hint;
-  const next = nextCourse();
-  $('course-switch').textContent = `${next.name} ↗`;
-  $('course-switch').setAttribute('aria-label', `Switch to ${next.name}`);
+  updateCourseNavigation();
   $('preview-map').setAttribute('aria-label', `${course.name} course map`);
   drawMap($('preview-map'));
 }
-function nextCourse() {
-  const list = Object.values(courses);
-  return list[(list.indexOf(course) + 1) % list.length];
+function adjacentCourse(offset) {
+  return courseOrder[courseOrder.indexOf(course) + offset] ?? null;
 }
-$('course-switch').onclick = async () => {
+function updateCourseNavigation({ loading = false } = {}) {
+  const index = courseOrder.indexOf(course);
+  $('course-position').textContent = `${String(index + 1).padStart(2, '0')} / THE COURSE`;
+  for (const [id, offset, direction] of [
+    ['course-previous', -1, 'Previous'],
+    ['course-next', 1, 'Next'],
+  ]) {
+    const target = adjacentCourse(offset);
+    const button = $(id);
+    button.disabled = loading || !target;
+    button.setAttribute(
+      'aria-label',
+      target ? `${direction} course: ${target.name}` : `No ${direction.toLowerCase()} course`,
+    );
+  }
+}
+async function changeCourse(offset) {
   if (race.phase !== 'intro') return;
-  selectCourse(nextCourse().id);
+  const target = adjacentCourse(offset);
+  if (!target) return;
+  selectCourse(target.id);
   camera = { ...course.preview };
   loadCourse(wasm);
   wasm.reset(track[0].x, track[0].y, track[0].a);
   effects.reset();
-  $('course-switch').disabled = true;
+  updateCourseNavigation({ loading: true });
   $('start').disabled = true;
   try {
     await renderer.setCourse();
     updateCourseDetails();
-    updateLeaderboard();
-    $('course-switch').disabled = false;
+    updateBestTime();
     $('start').disabled = false;
   } catch (error) {
     showError(error);
   }
-};
+}
+$('course-previous').onclick = () => changeCourse(-1);
+$('course-next').onclick = () => changeCourse(1);
 $('restart').onclick = reset;
 $('again').onclick = reset;
 $('pause').onclick = pause;
@@ -366,24 +416,16 @@ function backToGarage() {
   document.body.classList.remove('playing');
   camera = { ...course.preview };
   wasm.reset(0, 0, track[0].a);
-  updateLeaderboard();
+  updateBestTime();
   $('start').focus();
 }
 $('back').onclick = backToGarage;
-function updateLeaderboard() {
-  $('leaderboard-rows').replaceChildren();
-  for (const entry of COURSES) {
-    const row = document.createElement('tr');
-    const name = document.createElement('th');
-    name.scope = 'row';
-    name.textContent = entry.name;
-    const score = document.createElement('td');
-    const best = progression.bestTime(entry.id);
-    score.textContent = best === null ? 'No winning run yet' : fmt(best / 1000);
-    row.append(name, score);
-    $('leaderboard-rows').append(row);
-  }
-  $('progress-note').textContent = progression.saved
+function updateBestTime() {
+  const records = isClock() ? clockProgress : progression;
+  const best = records.bestTime(course.id);
+  $('best-time-score').textContent =
+    best === null ? (isClock() ? 'No finished run yet' : 'No winning run yet') : fmt(best / 1000);
+  $('progress-note').textContent = records.saved
     ? 'Personal records · saved on this browser.'
     : 'Cookies unavailable. Progress lasts for this visit only.';
 }
@@ -437,24 +479,41 @@ function finish() {
   $('results').hidden = false;
   $('countdown').hidden = true;
   const won = race.won;
-  if (won) progression.recordWin(course.id, race.overtakeTime);
-  $('result-title').innerHTML = won
-    ? 'OVERTAKE<br><em>CONFIRMED.</em>'
-    : race.crashReason
-      ? 'CRASHED<br><em>OUT.</em>'
-      : 'RIVAL<br><em>ESCAPED.</em>';
-  $('result-copy').textContent = won
-    ? 'You held a clean pass for five seconds. The pass is yours.'
-    : race.crashReason === 'rival'
-      ? 'You hit the rival. The run is over.'
-      : race.crashReason === 'roadside'
-        ? 'You hit the roadside. The run is over.'
-        : 'Your rival reached the finish before you confirmed the pass. Brake early, then carry speed out.';
-  $('final-time').textContent = won
-    ? fmt(race.overtakeTime)
-    : race.crashReason
-      ? 'CRASHED'
-      : 'ESCAPED';
+  if (isClock()) {
+    if (won) {
+      const recording = ghostRecorder.finish(race.finishTime, s);
+      clockProgress.recordRun(
+        course.id,
+        race.finishTime,
+        recording.samples,
+        recording.intervalTicks,
+      );
+    }
+    $('result-title').innerHTML = won ? 'FINISH<br><em>SET.</em>' : 'CRASHED<br><em>OUT.</em>';
+    $('result-copy').textContent = won
+      ? 'A clean run to the line. Your fastest finish keeps its ghost.'
+      : 'You hit the roadside. The run is over.';
+    $('final-time').textContent = won ? fmt(race.finishTime) : 'CRASHED';
+  } else {
+    if (won) progression.recordWin(course.id, race.overtakeTime);
+    $('result-title').innerHTML = won
+      ? 'OVERTAKE<br><em>CONFIRMED.</em>'
+      : race.crashReason
+        ? 'CRASHED<br><em>OUT.</em>'
+        : 'RIVAL<br><em>ESCAPED.</em>';
+    $('result-copy').textContent = won
+      ? 'You held a clean pass for five seconds. The pass is yours.'
+      : race.crashReason === 'rival'
+        ? 'You hit the rival. The run is over.'
+        : race.crashReason === 'roadside'
+          ? 'You hit the roadside. The run is over.'
+          : 'Your rival reached the finish before you confirmed the pass. Brake early, then carry speed out.';
+    $('final-time').textContent = won
+      ? fmt(race.overtakeTime)
+      : race.crashReason
+        ? 'CRASHED'
+        : 'ESCAPED';
+  }
   $('final-drift').textContent = `${race.driftTime.toFixed(1)}s`;
   soundUpdate();
 }
@@ -468,6 +527,8 @@ function simulate() {
       : headingAlignedInput(joystickState, joystickHeading)
     : headingAlignedInput(joystickState, joystickHeading);
   race.tick(readInput(keys, mobileInput));
+  if (isClock() && (before === 'race' || race.phase === 'race'))
+    ghostRecorder.sample(race.elapsed, s);
   $('countdown').hidden = !['countdown', 'race'].includes(race.phase) || race.elapsed > 0.6;
   $('countdown').textContent =
     race.phase === 'countdown' ? Math.min(3, Math.ceil(race.count)) : 'GO';
@@ -480,16 +541,23 @@ function updateHUD() {
   $('timer').textContent = fmt(race.elapsed);
   $('speed').textContent = Math.round(s[6] * 3.6);
   $('rev').style.width = `${Math.min(100, (s[6] / 44) * 100)}%`;
-  const first = s[8] >= s[18];
-  $('position').innerHTML = `${first ? 1 : 2}<span>/ 2</span>`;
-  const gap = Math.abs(s[8] - s[18]);
-  $('gap').textContent =
-    race.rivalFinish !== null
-      ? 'RIVAL ESCAPED'
-      : gap < 3
-        ? 'SIDE BY SIDE'
-        : `${first ? 'OVERTAKING' : 'CHASING'} ${gap.toFixed(0)} M`;
-  const passProgress = Math.min(5, race.overtakeDuration);
+  if (isClock()) {
+    const best = clockProgress.bestTime(course.id);
+    $('gap').textContent = best === null ? 'SET THE FIRST TIME' : `BEST ${fmt(best / 1000)}`;
+    $('clock-best').textContent =
+      best === null ? 'NO PERSONAL BEST' : `PERSONAL BEST ${fmt(best / 1000)}`;
+  } else {
+    const first = s[8] >= s[18];
+    $('position').innerHTML = `${first ? 1 : 2}<span>/ 2</span>`;
+    const gap = Math.abs(s[8] - s[18]);
+    $('gap').textContent =
+      race.rivalFinish !== null
+        ? 'RIVAL ESCAPED'
+        : gap < 3
+          ? 'SIDE BY SIDE'
+          : `${first ? 'OVERTAKING' : 'CHASING'} ${gap.toFixed(0)} M`;
+  }
+  const passProgress = isClock() ? 0 : Math.min(5, race.overtakeDuration);
   const passConfirmation = $('pass-confirmation');
   passConfirmation.hidden = passProgress <= 0;
   $('pass-progress').value = passProgress;
@@ -533,7 +601,7 @@ function drawMap(canvas, live = false) {
     }
   }
   if (live) {
-    for (let c = 1; c >= 0; c--) {
+    for (let c = isClock() ? 0 : 1; c >= 0; c--) {
       const [x, y] = project({ x: s[c * 10], y: s[c * 10 + 1] });
       ctx.beginPath();
       ctx.arc(x, y, 3, 0, Math.PI * 2);
@@ -567,7 +635,8 @@ function frame(now) {
       accumulator -= step;
     }
   } else accumulator = 0;
-  if (!['intro', 'briefing', 'paused'].includes(race.phase)) updateCamera(camera, s, dt);
+  if (!['intro', 'briefing', 'paused'].includes(race.phase))
+    updateCamera(camera, s, dt, atDistance, window.innerWidth / window.innerHeight);
   screenBoundary = brakeBoundary({ y: s[1], heading: s[2] }, camera, window.innerHeight);
   if (screenBoundary !== null)
     screenGuide.style.setProperty('--brake-boundary', `${screenBoundary}px`);
@@ -589,7 +658,21 @@ function frame(now) {
         : '';
   dynamic.data.length = 0;
   if (race.phase !== 'paused') sceneryTime += dt;
-  effects.draw(race.phase === 'paused' ? 0 : dt, race.phase, s, dynamic, skinPreference.skin);
+  const ghostState =
+    isClock() && race.phase === 'race' ? interpolateGhost(ghost, race.elapsed) : null;
+  if (ghostState) {
+    const start = dynamic.data.length;
+    skinPreference.skin.draw(dynamic, ghostState.x, ghostState.y, ghostState.a);
+    for (let i = start + 5; i < dynamic.data.length; i += 6) dynamic.data[i] = 0.38;
+  }
+  effects.draw(
+    race.phase === 'paused' ? 0 : dt,
+    race.phase,
+    s,
+    dynamic,
+    skinPreference.skin,
+    !isClock(),
+  );
   renderer.draw(camera, dynamic, sceneryTime);
   hudTimer += dt;
   if (hudTimer > 0.075) {
@@ -640,8 +723,7 @@ async function init() {
     );
     renderer.device.addEventListener('uncapturederror', (e) => showError(e.error));
     updateCourseDetails();
-    updateLeaderboard();
-    $('course-switch').disabled = false;
+    updateGameModeChoice();
     $('start').disabled = false;
     $('start').firstChild.textContent = 'START DESCENT ';
     requestAnimationFrame(frame);

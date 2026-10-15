@@ -237,6 +237,41 @@ p {
   text-align: left;
 }
 
+.game-mode-choice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  max-width: 390px;
+  margin: 0 0 17px;
+  font:
+    10px SFMono-Regular,
+    Consolas,
+    'Liberation Mono',
+    monospace;
+  letter-spacing: 1px;
+}
+
+.game-mode-choice > span {
+  width: 100%;
+  color: var(--muted);
+}
+
+.game-mode-choice button {
+  min-height: 36px;
+  padding: 8px 11px;
+  border: 1px solid #88938a;
+  background: #24312e;
+  color: var(--paper);
+  font: inherit;
+}
+
+.game-mode-choice button[aria-pressed='true'] {
+  border-color: var(--orange);
+  background: #5c3025;
+  color: #fff0e9;
+}
+
 #skin-preview {
   width: 96px;
   height: 72px;
@@ -417,6 +452,17 @@ footer > span:first-child {
   font-size: 9px;
 }
 
+#clock-best {
+  margin-top: 5px;
+  color: #c2d8d5;
+  font-variant-numeric: tabular-nums;
+}
+
+body[data-game-mode='clock'] .position,
+body[data-game-mode='clock'] .rival-legend {
+  display: none;
+}
+
 .position strong {
   font-size: 56px;
   font-weight: 500;
@@ -537,7 +583,7 @@ footer > span:first-child {
   border-radius: 50%;
 }
 
-.map-legend i:nth-child(2) {
+.rival-legend i {
   background: #c2d8d5;
   margin-left: 10px;
 }
@@ -649,47 +695,51 @@ footer > span:first-child {
   margin-top: 10px;
 }
 
-.leaderboard {
+.best-time {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px 16px;
   border-top: 1px solid #a0b09a40;
   padding: 16px 0 10px;
+  font-family: SFMono-Regular, Consolas, 'Liberation Mono', monospace;
 }
 
-.leaderboard h3 {
+.best-time h3 {
+  width: 100%;
   font: 12px monospace;
   letter-spacing: 1.4px;
   margin: 0;
 }
 
-.leaderboard p {
-  font: 10px/1.5 monospace;
-  margin: 8px 0;
-}
-
-#record-status {
+.best-time > span {
   color: var(--orange);
+  font: 10px/1.5 monospace;
 }
 
-.leaderboard table {
-  width: 100%;
-  border-collapse: collapse;
-  font: 12px monospace;
-}
-
-.leaderboard th,
-.leaderboard td {
-  padding: 9px 0;
-  text-align: left;
-  font-weight: 400;
-}
-
-.leaderboard thead {
-  color: var(--muted);
-  font-size: 9px;
-}
-
-.leaderboard tr > :last-child {
+.best-time strong {
+  flex: 1;
+  min-width: 0;
+  color: var(--paper);
+  font-size: 12px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   text-align: right;
-  padding-left: 12px;
+}
+
+.best-time p {
+  width: 100%;
+  margin: 0;
+  color: var(--muted);
+  font:
+    9px/1.4 SFMono-Regular,
+    Consolas,
+    'Liberation Mono',
+    monospace;
 }
 
 #error {
@@ -1353,15 +1403,34 @@ body.playing .header-label {
   white-space: nowrap;
 }
 
-#course-switch {
-  padding: 8px;
+.course-navigation {
+  display: flex;
+  gap: 5px;
+}
+
+.course-navigation button {
+  min-width: 34px;
+  min-height: 34px;
+  padding: 7px 6px;
   border: 1px solid #71858a;
   border-radius: 3px;
   background: #24383e;
   color: #edf7fa;
   font: inherit;
-  font-size: 9px;
-  line-height: 1.5;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.course-navigation button:disabled {
+  border-color: #3e4a4b;
+  background: #1a2324;
+  color: #596466;
+  cursor: not-allowed;
+  opacity: 1;
+}
+
+.course-navigation button:disabled:hover {
+  filter: none;
 }
 
 .course-hint {
@@ -1379,11 +1448,16 @@ body.playing .header-label {
   .brief {
     width: 290px;
   }
+
+  .best-time {
+    column-gap: 8px;
+  }
 }
 
 @media (width <= 600px) {
   #intro {
     overflow-y: auto;
+    scroll-padding-block: 85px 20px;
     flex-direction: column;
     align-items: stretch;
     justify-content: flex-start;
@@ -1399,7 +1473,7 @@ body.playing .header-label {
     padding: 15px;
   }
 
-  .brief > :not(.course-switcher, h2, .course-hint, .brief-bottom, .leaderboard) {
+  .brief > :not(.course-switcher, h2, .course-hint, .brief-bottom, .best-time) {
     display: none;
   }
 
@@ -1473,30 +1547,17 @@ body.playing .header-label {
     display: none;
   }
 
-  .leaderboard {
+  .best-time {
     padding: 8px 0 4px;
   }
 
-  .leaderboard p {
+  .best-time p {
     font-size: 8px;
     line-height: 1.2;
     margin: 4px 0;
   }
 
-  .leaderboard table {
-    font-size: 9px;
-  }
-
-  .leaderboard th,
-  .leaderboard td {
-    padding: 3px 0;
-  }
-
-  .leaderboard tr > :last-child {
-    padding-left: 4px;
-  }
-
-  .brief > :not(.course-switcher, h2, .course-hint, .brief-bottom, .leaderboard),
+  .brief > :not(.course-switcher, h2, .course-hint, .brief-bottom, .best-time),
   .intro-copy > .eyebrow,
   .intro-copy > p,
   .intro-copy .hint {
@@ -1582,31 +1643,27 @@ body[data-snow='true']:not(.playing) .grain {
     font-size: 10px;
   }
 
-  #course-switch {
-    font-size: 7px;
-    padding: 5px;
+  .course-navigation {
+    gap: 3px;
+  }
+
+  .course-switcher {
+    flex-wrap: wrap;
+    gap: 6px;
   }
 
   .brief-bottom {
     font-size: 7px;
   }
 
-  .leaderboard {
+  .best-time {
     padding-top: 8px;
+    column-gap: 4px;
   }
 
-  .leaderboard p {
+  .best-time p {
     font-size: 8px;
     line-height: 1.2;
     margin: 5px 0;
-  }
-
-  .leaderboard table {
-    font-size: 7px;
-  }
-
-  .leaderboard th,
-  .leaderboard td {
-    padding: 5px 0;
   }
 }

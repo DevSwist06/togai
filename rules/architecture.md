@@ -6,12 +6,13 @@
 - `src/client/progression.js`: validated personal course records and first completed briefing state, persisted to a path-scoped browser cookie and kept out of simulation.
 - `src/client/screen-controls.js`: pure mobile touch classification, car-relative brake boundary, and four-field driving input. `src/client/control-preference.js` stores the selected mobile control mode separately from progression.
 - `src/client/car-skins.js`: authored cosmetic catalogue and procedural car geometry, shared by the garage preview and racing effects. `src/client/skin-preference.js` validates and persists the player choice separately from progression. Skins never alter simulation dimensions or stats.
+- `src/client/camera.js`: presentation-only follow using per-view damping history, velocity correction, bounded speed/acceleration zoom and course-aware look-ahead. The fixed top-down view does not rotate or feed state back into physics. Viewport aspect bounds its framing; replacing the camera clears history on retry/course changes.
 - `src/physics/`: AssemblyScript physics compiled to WASM. Document the shared-memory layout and validate exported inputs. Do not add allocations in the physics loop.
 - `src/server/`: loopback static server. Only `dist/` is public; never serve the repository root.
 - `public/`: authored HTML/CSS and static assets. No generated binaries.
 - `dist/`: disposable build output, ignored by Git. Rebuild from source before tests.
 - `tests/unit/`, `tests/e2e/`, `tests/security/`: behavior, real-browser integration, and attack regression checks.
-- `scripts/`: build and repository tooling. `rules/`: team policy.
+- `scripts/`: build and repository tooling. The browser-test runner assigns a free loopback port to each verification; Playwright's server, browser and cookie fixtures share that origin without reusing an existing server. `rules/`: team policy.
 
 ## Code quality
 

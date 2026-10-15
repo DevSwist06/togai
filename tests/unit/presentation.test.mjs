@@ -1,7 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { DrivingEffects } from '../../src/client/effects.js';
-import { updateCamera } from '../../src/client/camera.js';
 import { Mesh } from '../../src/client/renderer.js';
 test('player car has no trailing triangle', () => {
   const fx = new DrivingEffects(),
@@ -108,17 +107,53 @@ test('snow spray emits only on snow surfaces, scales with speed, and fades after
   for (let i = 0; i < 20; i++) fx.draw(0.1, 'race', s, mesh);
   assert.equal(fx.snow.length, 0);
 });
-test('camera eases toward the car, looks ahead and widens at speed', () => {
-  const camera = { x: 0, y: 0, zoom: 83 },
-    s = new Float64Array(20);
-  s[0] = 50;
-  s[1] = -100;
-  s[6] = 30;
-  updateCamera(camera, s, 0);
-  assert.deepEqual(camera, { x: 0, y: 0, zoom: 83 });
-  updateCamera(camera, s, 0.016);
-  assert(camera.x > 0 && camera.x < 50);
-  assert(camera.y < 0 && camera.y > -140);
-  assert(camera.zoom > 83);
-  assert(Object.values(camera).every(Number.isFinite));
+test('solo racing keeps player effects and suppresses rival geometry, drift and snow spray', () => {
+  for (const showRival of [false, true]) {
+    for (const playerOnSnow of [false, true]) {
+      const fx = new DrivingEffects({
+          getSurfaces: () => [
+            { type: 1, x: 30, y: 0, a: 0, width: 8, length: 10 },
+            ...(playerOnSnow ? [{ type: 1, x: -30, y: 0, a: 0, width: 8, length: 10 }] : []),
+          ],
+        }),
+        mesh = new Mesh(),
+        s = new Float64Array(20);
+      s[0] = -30;
+      s[10] = 30;
+      s[6] = s[16] = 30;
+      s[7] = s[17] = 0.2;
+      fx.draw(0.05, 'race', s, mesh, undefined, showRival);
+      assert.equal(
+        fx.snow.some((p) => p.x < 0),
+        playerOnSnow,
+        'Player spray follows snow contact',
+      );
+      assert.equal(
+        fx.snow.some((p) => p.x > 0),
+        showRival,
+        'Only an active rival sprays snow',
+      );
+      for (const particles of [fx.smoke, fx.marks]) {
+        assert(
+          particles.some((p) => p.x < 0),
+          'Player drift effects remain visible',
+        );
+        assert.equal(
+          particles.some((p) => p.x > 0),
+          showRival,
+          'Only an active rival leaves drift effects',
+        );
+      }
+      const positions = mesh.data.filter((_, i) => i % 6 === 0);
+      assert(
+        positions.some((x) => x < -20),
+        'Player geometry remains visible',
+      );
+      assert.equal(
+        positions.some((x) => x > 20),
+        showRival,
+        'Only an active rival is drawn',
+      );
+    }
+  }
 });

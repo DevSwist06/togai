@@ -63,6 +63,49 @@ test('real WebGPU boots without console errors and renders nonempty scene and ma
   expect(errors).toEqual([]);
 });
 
+test('clock mode selects a solo finish, persists its separate record and starts with its ghost', async ({
+  page,
+  context,
+}) => {
+  await page.route('**/game.js', async (route) => {
+    const response = await route.fetch();
+    const source = (await response.text()).replace(
+      'race.tick(readInput(keys, mobileInput));',
+      `race.tick(readInput(keys, mobileInput));
+      if (race.mode === GAME_MODES.CLOCK && race.phase === 'race' && !window.__clockFinished) {
+        window.__clockFinished = true; s[0] += 12; s[1] -= 12;
+        race.elapsed = 5; race.finishTime = 5; race.phase = 'finished';
+      }`,
+    );
+    await route.fulfill({ response, body: source });
+  });
+  await ready(page);
+  await expect(page.locator('#mode-takeover')).toHaveAttribute('aria-pressed', 'true');
+  await page.locator('#mode-clock').click();
+  await expect(page.locator('#mode-clock')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('#best-time-score')).toHaveText('No finished run yet');
+  await page.screenshot({ path: test.info().outputPath('clock-home-desktop.png') });
+  await page.setViewportSize({ width: 800, height: 600 });
+  await page.screenshot({ path: test.info().outputPath('clock-home-compact.png') });
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.locator('#start').click();
+  await expect(page.locator('#rival-dialogue')).toBeHidden();
+  await expect(page.locator('#results')).toBeVisible({ timeout: 12_000 });
+  await expect(page.locator('#result-title')).toContainText('FINISH');
+  await expect(page.locator('#final-time')).toHaveText('00:05.000');
+  expect((await context.cookies()).some((cookie) => cookie.name === 'togai_clock_kasumi')).toBe(
+    true,
+  );
+  await page.locator('#again').click();
+  await expect(page.locator('#clock-best')).toContainText('00:05.000');
+  await expect(page.locator('#countdown')).toBeHidden({ timeout: 12_000 });
+  await page.screenshot({ path: test.info().outputPath('clock-ghost.png') });
+  await page.reload();
+  await expect(page.locator('#start')).toBeEnabled();
+  await page.locator('#mode-clock').click();
+  await expect(page.locator('#best-time-score')).toHaveText('00:05.000');
+});
+
 test('course preview and live map place the start below the finish', async ({ page }) => {
   await page.addInitScript(() => {
     window.__courseLabels = {};
@@ -167,6 +210,18 @@ test.describe('phone controls', () => {
     await page.locator('#start').click();
     await finishBriefing(page);
     const guide = page.locator('#screen-guide');
+    // Read both fading values in the same browser task: a second round trip can
+    // arrive after the opening state, especially while another gate uses the GPU.
+    await expect
+      .poll(() =>
+        guide.evaluate((element) =>
+          Math.min(
+            Number.parseFloat(element.style.getPropertyValue('--guide-emphasis')),
+            Number.parseFloat(getComputedStyle(element).opacity),
+          ),
+        ),
+      )
+      .toBeGreaterThan(0.7);
     await expect(guide).toBeVisible();
     await expect(page.locator('#joystick')).toBeHidden();
     expect(
@@ -174,23 +229,12 @@ test.describe('phone controls', () => {
         Number.parseFloat(element.style.getPropertyValue('--brake-boundary')),
       ),
     ).toBeGreaterThanOrEqual(844 * 0.8);
-    await expect
-      .poll(() =>
-        guide.evaluate((element) =>
-          Number.parseFloat(element.style.getPropertyValue('--guide-emphasis')),
-        ),
-      )
-      .toBeGreaterThan(0.7);
-    const openingOpacity = await guide.evaluate((element) =>
-      Number.parseFloat(getComputedStyle(element).opacity),
-    );
     await page.screenshot({ path: test.info().outputPath('screen-controls-countdown.png') });
     await expect(page.locator('#countdown')).toBeHidden({ timeout: 12_000 });
     await expect(guide).toBeHidden();
     expect(
       await guide.evaluate((element) => Number.parseFloat(getComputedStyle(element).opacity)),
     ).toBe(0);
-    expect(openingOpacity).toBeGreaterThan(0.7);
     await expect
       .poll(async () => Number(await page.locator('#speed').textContent()))
       .toBeGreaterThan(10);
@@ -348,7 +392,7 @@ test.describe('tablet controls', () => {
   test('Screen mode and the brake guide fit Beaufort on a tablet', async ({ page }) => {
     await ready(page);
     await expect(page.locator('#control-choice')).toBeVisible();
-    await page.locator('#course-switch').click();
+    await page.locator('#course-next').click();
     await expect(page.locator('#course-name')).toHaveText('BEAUFORT MOUNTAIN');
     await page.locator('#start').click();
     await expect(page.locator('#screen-guide')).toBeVisible();
@@ -524,7 +568,7 @@ test('rival briefing highlights rules, holds the race, supports mute, cancel and
   expect(courseBefore.camera).toEqual({
     x: courseBefore.state[0],
     y: courseBefore.state[1] + 32,
-    zoom: 83,
+    zoom: 75,
   });
   await page.keyboard.press('w');
   await page.keyboard.press('r');
@@ -654,23 +698,31 @@ test('default menu sound enables rival speech and speech stops when dialogue clo
   expect(await page.evaluate(() => window.__voiceLevel)).toBe(0);
 });
 
-test('Beaufort switch sits beside the course label, skips Ren and survives restart and garage', async ({
+test('ordered course buttons disable at the ends, skip Ren on Beaufort and survive restart and garage', async ({
   page,
 }) => {
   const errors = [];
   page.on('pageerror', (error) => errors.push(error.message));
   await ready(page);
-  const toggle = page.getByRole('button', { name: 'Switch to BEAUFORT MOUNTAIN' });
+  const previous = page.locator('#course-previous');
+  const next = page.getByRole('button', { name: 'Next course: BEAUFORT MOUNTAIN' });
+  await expect(previous).toHaveText('<');
+  await expect(next).toHaveText('>');
   await expect(page.locator('.course-switcher')).toContainText('01 / THE COURSE');
-  await expect(toggle).toBeInViewport();
-  await toggle.focus();
+  await expect(previous).toBeDisabled();
+  await expect(next).toBeEnabled();
+  await expect(next).toBeInViewport();
+  await next.focus();
   await page.keyboard.press('Enter');
   await expect(page.locator('#course-name')).toHaveText('BEAUFORT MOUNTAIN');
+  await expect(page.locator('#course-position')).toHaveText('02 / THE COURSE');
+  await expect(page.locator('#course-next')).toBeDisabled();
+  await expect(previous).toBeEnabled();
   await expect(page.locator('#course-length')).toHaveText('3.9');
   await expect(page.locator('#course-hint')).toContainText('Half-road ice');
   await page.screenshot({ path: test.info().outputPath('beaufort-home-desktop.png') });
   await page.setViewportSize({ width: 390, height: 844 });
-  await expect(page.locator('#course-switch')).toBeInViewport();
+  await expect(page.locator('.course-navigation')).toBeInViewport();
   await expect(page.locator('#start')).toBeInViewport();
   await page.screenshot({ path: test.info().outputPath('beaufort-home-phone.png') });
   await page.locator('#start').click();
@@ -688,7 +740,7 @@ test('Beaufort switch sits beside the course label, skips Ren and survives resta
   await page.keyboard.up('d');
   await expect(page.locator('#result-course')).toContainText('BEAUFORT MOUNTAIN');
   await page.locator('#back').click();
-  await page.getByRole('button', { name: 'Switch to KASUMI PASS' }).click();
+  await page.getByRole('button', { name: 'Previous course: KASUMI PASS' }).click();
   await expect(page.locator('#course-name')).toHaveText('KASUMI PASS');
   await page.locator('#start').click();
   await expect(page.locator('#rival-dialogue')).toBeVisible();
@@ -714,7 +766,7 @@ test('Beaufort firs, caustic river and half-road ice render on desktop and compa
     await route.fulfill({ response, body: source });
   });
   await ready(page);
-  await page.locator('#course-switch').click();
+  await page.locator('#course-next').click();
   await expect(page.locator('#course-name')).toHaveText('BEAUFORT MOUNTAIN');
   await page.evaluate(() => window.__viewCourse(90));
   const before = await page.locator('#game').screenshot();
@@ -782,7 +834,7 @@ test('a failed map water shader shows recovery instead of leaving the garage loa
     }),
   );
   await ready(page);
-  await page.locator('#course-switch').click();
+  await page.locator('#course-next').click();
   await expect(page.locator('#error')).toBeVisible();
   await expect(page.locator('#error-message')).not.toBeEmpty();
   await expect(page.locator('#retry')).toBeVisible();

@@ -37,13 +37,13 @@ export class DrivingEffects {
     }
     return false;
   }
-  emitSnow(dt, phase, s) {
+  emitSnow(dt, phase, s, showRival) {
     if (phase !== 'race') return;
     this.snowEmission += dt;
     if (this.snowEmission < SNOW_EMIT_STEP) return;
     this.snowEmission = 0;
     const snow = this.snow;
-    for (let c = 0; c < 2; c++) {
+    for (let c = 0; c < (showRival ? 2 : 1); c++) {
       const k = c * 10;
       const speed = s[k + 6];
       if (speed < SNOW_MIN_SPEED || !this.onSnow(s[k], s[k + 1])) continue;
@@ -96,7 +96,13 @@ export class DrivingEffects {
       const fade = (p.life / p.maxLife) ** 1.35;
       const alpha = p.opacity * fade;
       const shade = 0.87 + fade * 0.08;
-      dynamic.disc(p.x, p.y, p.r, [shade, Math.min(1, shade + 0.04), Math.min(1, shade + 0.07), alpha], 7);
+      dynamic.disc(
+        p.x,
+        p.y,
+        p.r,
+        [shade, Math.min(1, shade + 0.04), Math.min(1, shade + 0.07), alpha],
+        7,
+      );
     }
   }
   reset() {
@@ -122,7 +128,7 @@ export class DrivingEffects {
       });
     }
   }
-  draw(dt, phase, s, dynamic, playerSkin = CAR_SKINS[0]) {
+  draw(dt, phase, s, dynamic, playerSkin = CAR_SKINS[0], showRival = true) {
     const smoke = this.smoke,
       marks = this.marks,
       sparks = this.sparks;
@@ -130,7 +136,7 @@ export class DrivingEffects {
     this.emission += dt;
     if (this.emission > 1 / 30 && phase === 'race') {
       this.emission = 0;
-      for (let c = 0; c < 2; c++) {
+      for (let c = 0; c < (showRival ? 2 : 1); c++) {
         const k = c * 10;
         if (s[k + 6] < 7 || Math.abs(s[k + 7]) < 0.065) continue;
         for (const side of [-1, 1]) {
@@ -152,9 +158,9 @@ export class DrivingEffects {
       dynamic.rect(p.x, p.y, 0.25, 1, p.a, [0.17, 0.21, 0.18]);
     }
     if (marks.length > MAX_MARKS) marks.splice(0, marks.length - MAX_MARKS);
-    this.emitSnow(dt, phase, s);
+    this.emitSnow(dt, phase, s, showRival);
     this.drawSnow(dt, dynamic);
-    drawCar(dynamic, s[10], s[11], s[12], color('b9d2cd'), s[15]);
+    if (showRival) drawCar(dynamic, s[10], s[11], s[12], color('b9d2cd'), s[15]);
     playerSkin.draw(dynamic, s[0], s[1], s[2], s[5]);
     for (let i = smoke.length - 1; i >= 0; i--) {
       const p = smoke[i];
