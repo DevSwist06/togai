@@ -11,12 +11,14 @@ function damp(axis, target, frequency, dt) {
   axis.velocity = (axis.velocity - frequency * impulse) * decay;
 }
 
-export function updateCamera(camera, s, dt, sampleTrack, aspect = 1) {
+export function updateCamera(camera, s, dt, sampleTrack, aspect = 1, zoomScale = 1) {
   if (
     !Number.isFinite(dt) ||
     dt <= 0 ||
     !Number.isFinite(aspect) ||
     aspect <= 0 ||
+    !Number.isFinite(zoomScale) ||
+    zoomScale <= 0 ||
     !Number.isFinite(camera.x) ||
     !Number.isFinite(camera.y) ||
     !Number.isFinite(camera.zoom) ||
@@ -46,7 +48,7 @@ export function updateCamera(camera, s, dt, sampleTrack, aspect = 1) {
   follow.acceleration += (acceleration - follow.acceleration) * (1 - Math.exp(-3 * dt));
   follow.previousSpeed = speed;
 
-  const targetZoom = 62 + follow.speed * 0.17 + follow.acceleration * 0.08;
+  const targetZoom = (62 + follow.speed * 0.17 + follow.acceleration * 0.08) * zoomScale;
   const look = 12 + follow.speed * 0.38;
   const heading = s[2] + clamp(s[5], -1, 1) * Math.min(follow.speed / 30, 1) * 0.12;
   let directionX = Math.sin(heading),

@@ -9,8 +9,9 @@ function view(speed = 0) {
   s[6] = speed;
   return { camera: { x: 0, y: -12, zoom: 75 }, s };
 }
-function settle(camera, s, seconds = 4, sampleTrack, aspect = 1) {
-  for (let i = 0; i < seconds * 60; i++) updateCamera(camera, s, 1 / 60, sampleTrack, aspect);
+function settle(camera, s, seconds = 4, sampleTrack, aspect = 1, zoomScale = 1) {
+  for (let i = 0; i < seconds * 60; i++)
+    updateCamera(camera, s, 1 / 60, sampleTrack, aspect, zoomScale);
 }
 
 test('closer framing retains a modest speed zoom and smoothly settles after braking', () => {
@@ -52,6 +53,22 @@ test('acceleration and braking gently change zoom without pumping', () => {
     assert(camera.zoom <= before && before - camera.zoom < 0.06);
   }
   assert(camera.zoom < acceleratingZoom);
+});
+
+test('mobile framing shows 15% more track at rest and speed in either orientation', () => {
+  for (const speed of [0, 60])
+    for (const aspect of [320 / 740, 390 / 844, 844 / 390, 820 / 1180]) {
+      const desktop = view(speed),
+        mobile = view(speed);
+      settle(desktop.camera, desktop.s, 4, undefined, aspect);
+      settle(mobile.camera, mobile.s, 4, undefined, aspect, 1.15);
+      assert(Math.abs(mobile.camera.zoom / desktop.camera.zoom - 1.15) < 0.001);
+      const before = mobile.camera.zoom;
+      updateCamera(mobile.camera, mobile.s, 1 / 60, undefined, aspect);
+      assert(Math.abs(mobile.camera.zoom - before) < 0.05, 'Pointer changes ease the zoom');
+      settle(mobile.camera, mobile.s, 4, undefined, aspect);
+      assert(Math.abs(mobile.camera.zoom - desktop.camera.zoom) < 0.01);
+    }
 });
 
 test('course look-ahead reveals the bend before the vehicle turns', () => {
@@ -144,6 +161,7 @@ test('invalid input freezes the view and long stalls are bounded without poisoni
   const before = { ...camera };
   for (const dt of [0, -1, NaN, Infinity]) updateCamera(camera, s, dt);
   for (const aspect of [0, -1, NaN, Infinity]) updateCamera(camera, s, 1 / 60, undefined, aspect);
+  for (const scale of [0, -1, NaN, Infinity]) updateCamera(camera, s, 1 / 60, undefined, 1, scale);
   for (let field = 0; field < 7; field++) {
     const saved = s[field];
     s[field] = NaN;

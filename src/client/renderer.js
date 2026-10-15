@@ -1,5 +1,6 @@
 import { track, length, atDistance, course, surfaces } from './track.js';
-export const ROAD_EXTENSION = 62;
+// Keep the caps beyond endpoint camera views, including the wider briefing view.
+export const ROAD_EXTENSION = 150;
 const color = (hex) => [
   parseInt(hex.slice(0, 2), 16) / 255,
   parseInt(hex.slice(2, 4), 16) / 255,
@@ -83,13 +84,29 @@ function roadStrip(mesh, width, col, offset = 0) {
     );
   }
 }
+function nearRoad(x, y, points) {
+  for (let i = 1; i < points.length; i++) {
+    const a = points[i - 1],
+      b = points[i],
+      dx = b.x - a.x,
+      dy = b.y - a.y,
+      t = Math.max(0, Math.min(1, ((x - a.x) * dx + (y - a.y) * dy) / (dx * dx + dy * dy || 1)));
+    if ((a.x + dx * t - x) ** 2 + (a.y + dy * t - y) ** 2 < 29 * 29) return true;
+  }
+  return false;
+}
 export function scenery() {
   const snow = course.snow;
+  const road = [
+    renderPointAtDistance(-ROAD_EXTENSION),
+    ...track,
+    renderPointAtDistance(length + ROAD_EXTENSION),
+  ];
   const bounds = {
-    minX: Math.min(...track.map((p) => p.x)) - 420,
-    maxX: Math.max(...track.map((p) => p.x)) + 420,
-    minY: Math.min(...track.map((p) => p.y)) - 220,
-    maxY: Math.max(...track.map((p) => p.y)) + 220,
+    minX: Math.min(...road.map((p) => p.x)) - 420,
+    maxX: Math.max(...road.map((p) => p.x)) + 420,
+    minY: Math.min(...road.map((p) => p.y)) - 220,
+    maxY: Math.max(...road.map((p) => p.y)) + 220,
   };
   const context = { course, atDistance, length, surfaces, color, bounds };
   const m = new Mesh();
@@ -155,10 +172,8 @@ export function scenery() {
   for (let i = 0; i < Math.min(12000, length * 2); i++) {
     const x = bounds.minX + random() * (bounds.maxX - bounds.minX),
       y = bounds.minY + random() * (bounds.maxY - bounds.minY);
-    let near = 1e9;
-    for (let j = 0; j < track.length; j += 3)
-      near = Math.min(near, (track[j].x - x) ** 2 + (track[j].y - y) ** 2);
-    if (near < 29 * 29) continue;
+    // Test whole segments so the forest also clears the long endpoint tangents.
+    if (nearRoad(x, y, road)) continue;
     if (course.excludeTree?.(x, y, context)) continue;
     const r = 3 + random() * 7;
     if (course.drawTree) {

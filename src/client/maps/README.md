@@ -17,6 +17,8 @@ Required configuration:
 - `bridges`: `[startDistance, endDistance]` pairs. Broad shoulders are omitted within these spans so a custom bridge can cross open water.
 - `surfaces`: authored patches `{d, offset, width, length, type}`. `d` is route distance and `offset` is signed lateral distance in meters. `width` and `length` are **half** dimensions. Type 1 is elliptical, fully crossable slow snow; type 2 is slippery, gently accelerating ice. Width must be 0–30 meters (exclusive of zero); length 0–60. Keep hazards within the road and out of bridge spans when authoring ice-free bridges. Optional `variant` can choose a map-owned appearance; Beaufort cycles four snowbank designs. Maps can set `curvedIce: true` to split ice into overlapping road-aligned physics records while drawing a continuous curved patch. The compiled physics module allows 128 records total, including the generated segments.
 
+The shared renderer extends the road 150 m along the start and finish tangents, including shoulders, markings and guardrails. Terrain bounds include both extensions, and generated tree centers stay at least 29 m from every road segment, including the continuations. Keep custom tree footprints within that clearance. These are visual extensions; logical route length, finish detection and physics points remain unchanged.
+
 Optional drawing hooks receive a `Mesh` plus a context object with `course`, `atDistance`, and `color`. Static hooks also receive `length`, `surfaces`, and terrain `bounds`:
 
 - `drawTerrain(mesh, context)`: river beds, cliffs, lakes; before the road.
