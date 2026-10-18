@@ -1,13 +1,22 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { track, length, atDistance, aiInput } from '../../src/client/track.js';
+import {
+  track,
+  length,
+  atDistance,
+  aiInput,
+  course,
+  selectCourse,
+} from '../../src/client/track.js';
 import {
   Mesh,
   ROAD_EXTENSION,
   drawCar,
   color,
   renderPointAtDistance,
+  scenery,
 } from '../../src/client/renderer.js';
+import { updateCamera } from '../../src/client/camera.js';
 test('track fits physics capacity, has increasing progress and normalized normals', () => {
   assert(track.length > 100 && track.length < 2048);
   assert(length > 1900 && length < 2000);
@@ -37,6 +46,69 @@ test('rendered road continues smoothly beyond both race endpoints', () => {
   assert.equal(startEnd.a, track[0].a);
   assert.equal(finish.a, track.at(-1).a);
 });
+for (const id of ['kasumi', 'beaufort']) {
+  test(`${id} road ends stay outside start and finish camera views`, () => {
+    selectCourse(id);
+    try {
+      for (const aspect of [1440 / 950, 800 / 600, 390 / 844])
+        for (const d of [0, length - 14])
+          for (const speed of [0, 90]) {
+            const p = atDistance(d),
+              state = new Float64Array(20),
+              camera = { x: p.x, y: p.y + 32, zoom: 75 };
+            state[0] = p.x;
+            state[1] = p.y;
+            state[2] = p.a;
+            state[3] = Math.sin(p.a) * speed;
+            state[4] = -Math.cos(p.a) * speed;
+            state[6] = speed;
+            state[8] = d;
+            for (let frame = 0; frame < 240; frame++) {
+              for (const end of [-ROAD_EXTENSION, length + ROAD_EXTENSION]) {
+                const point = renderPointAtDistance(end);
+                // The widest shoulder reaches 35 m sideways, along the road normal.
+                assert(
+                  Math.abs(point.x - camera.x) > camera.zoom * aspect + 35 * Math.abs(point.nx) ||
+                    Math.abs(point.y - camera.y) > camera.zoom + 35 * Math.abs(point.ny),
+                  `Road cap must be outside the view at distance ${d}, speed ${speed}`,
+                );
+              }
+              updateCamera(camera, state, 1 / 60, atDistance, aspect);
+            }
+          }
+    } finally {
+      selectCourse('kasumi');
+    }
+  });
+  test(`${id} generated trees leave the entire rendered road clear, including both extensions`, () => {
+    selectCourse(id);
+    const original = course.drawTree,
+      trees = [];
+    try {
+      course.drawTree = (_mesh, tree) => trees.push(tree);
+      const scene = scenery();
+      assert(scene.vertices.every(Number.isFinite));
+      assert(trees.length > 100, 'The roadside forest remains populated');
+      for (let d = -ROAD_EXTENSION; d <= length + ROAD_EXTENSION; d += 2) {
+        const point = renderPointAtDistance(d);
+        for (const tree of trees)
+          if (Math.hypot(tree.x - point.x, tree.y - point.y) < 29 - 0.01)
+            assert.fail(`Tree at (${tree.x}, ${tree.y}) overlaps the road clearance at ${d}`);
+      }
+      for (const d of [-150, length + 150]) {
+        const point = renderPointAtDistance(d);
+        assert(
+          trees.some((tree) => Math.hypot(tree.x - point.x, tree.y - point.y) < 100),
+          'Trees still border the extended road',
+        );
+      }
+    } finally {
+      if (original) course.drawTree = original;
+      else delete course.drawTree;
+      selectCourse('kasumi');
+    }
+  });
+}
 test('AI outputs bounded controls across the entire track', () => {
   const s = new Float64Array(20);
   for (let d = 0; d < length; d += 7) {

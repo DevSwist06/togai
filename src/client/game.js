@@ -636,7 +636,14 @@ function frame(now) {
     }
   } else accumulator = 0;
   if (!['intro', 'briefing', 'paused'].includes(race.phase))
-    updateCamera(camera, s, dt, atDistance, window.innerWidth / window.innerHeight);
+    updateCamera(
+      camera,
+      s,
+      dt,
+      atDistance,
+      window.innerWidth / window.innerHeight,
+      coarsePointer.matches ? 1.15 : 1,
+    );
   screenBoundary = brakeBoundary({ y: s[1], heading: s[2] }, camera, window.innerHeight);
   if (screenBoundary !== null)
     screenGuide.style.setProperty('--brake-boundary', `${screenBoundary}px`);
